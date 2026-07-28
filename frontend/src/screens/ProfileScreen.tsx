@@ -6,6 +6,7 @@ import type { AppScreen, ChildProfile, PreferenceItem } from '../types/domain';
 
 interface ProfileScreenProps {
   childrenList: ChildProfile[];
+  onEditChild: (child: ChildProfile) => void;
   onGo: (screen: AppScreen) => void;
 }
 
@@ -17,13 +18,13 @@ function tintFor(child: ChildProfile) {
 }
 
 const preferences: PreferenceItem[] = [
-  { icon: 'bell', label: 'Notificações' },
-  { icon: 'shield', label: 'Privacidade e dados' },
+  { icon: 'bell', label: 'Notificações', go: 'notifications' },
+  { icon: 'shield', label: 'Privacidade e dados', go: 'privacy' },
   { icon: 'info', label: 'Sobre o aplicativo', go: 'about' },
   { icon: 'settings', label: 'Storybook visual', go: 'dev' },
 ];
 
-export function ProfileScreen({ childrenList, onGo }: ProfileScreenProps) {
+export function ProfileScreen({ childrenList, onEditChild, onGo }: ProfileScreenProps) {
   const { logout, user } = useAuth();
   const initials = user?.name
     ?.split(' ')
@@ -68,7 +69,12 @@ export function ProfileScreen({ childrenList, onGo }: ProfileScreenProps) {
             Crianças
           </Text>
           {childrenList.map((child) => (
-            <Card key={child.id} padding={spacing.sm} contentStyle={{ alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}>
+            <Card
+              key={child.id}
+              onPress={() => onEditChild(child)}
+              padding={spacing.sm}
+              contentStyle={{ alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}
+            >
               <View
                 style={{
                   alignItems: 'center',
@@ -91,6 +97,7 @@ export function ProfileScreen({ childrenList, onGo }: ProfileScreenProps) {
                   {child.age} · {child.weight}
                 </Text>
               </View>
+              <Icon name="chevronRight" color={colors.textSubtle} size={16} />
             </Card>
           ))}
           <Pressable

@@ -42,14 +42,16 @@ public class SecurityFilter extends OncePerRequestFilter {
         } catch (BlockedUserException blockedUserException) {
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write(blockedUserException.getMessage());
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"status\":403,\"mensagem\":\"" + blockedUserException.getMessage() + "\",\"campos\":[]}");
             response.getWriter().flush();
             return;
         } catch (Exception e) {
             // Deixe o AuthenticationEntryPoint lidar com a resposta 401
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Token inválido ou expirado.");
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"status\":401,\"mensagem\":\"Token inválido ou expirado\",\"campos\":[]}");
             response.getWriter().flush();
             return;
         }

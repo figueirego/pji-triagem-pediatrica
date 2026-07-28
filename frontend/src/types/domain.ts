@@ -8,7 +8,9 @@ export type IconName =
   | 'alert'
   | 'back'
   | 'baby'
+  | 'bandage'
   | 'bell'
+  | 'belly'
   | 'book'
   | 'check'
   | 'chevronRight'
@@ -16,10 +18,12 @@ export type IconName =
   | 'close'
   | 'cough'
   | 'drop'
+  | 'ear'
   | 'heart'
   | 'history'
   | 'home'
   | 'info'
+  | 'lung'
   | 'lock'
   | 'logout'
   | 'phone'
@@ -29,6 +33,7 @@ export type IconName =
   | 'rash'
   | 'search'
   | 'settings'
+  | 'share'
   | 'shield'
   | 'stetho'
   | 'thermo'
@@ -43,14 +48,19 @@ export type AppScreen =
   | 'quiz'
   | 'result'
   | 'orientations'
+  | 'orientation-detail'
   | 'history'
+  | 'notifications'
   | 'profile'
+  | 'privacy'
   | 'about'
   | 'child-add'
+  | 'child-edit'
   | 'dev';
 
 export interface ChildProfile {
   id: string;
+  backendId?: number;
   name: string;
   ageValue?: string;
   ageUnit?: AgeUnit;
@@ -58,10 +68,14 @@ export interface ChildProfile {
   weight: string;
   initials: string;
   tint: RiskTone;
+  avatarEmoji?: string;
 }
 
 export interface Symptom {
   id: string;
+  backendId?: number;
+  code?: string;
+  colorHex?: string;
   name: string;
   desc: string;
   icon: IconName;
@@ -70,11 +84,13 @@ export interface Symptom {
 
 export interface QuizOption {
   id: string;
+  backendId?: number;
   label: string;
-  risk: number;
+  risk?: number;
 }
 
 export interface OptionsQuestion {
+  backendId?: number;
   q: string;
   sub?: string;
   type: 'options';
@@ -83,6 +99,7 @@ export interface OptionsQuestion {
 }
 
 export interface YesNoQuestion {
+  backendId?: number;
   q: string;
   sub?: string;
   type: 'yesno';
@@ -94,6 +111,7 @@ export type TriageQuestion = OptionsQuestion | YesNoQuestion;
 export type TriageAnswers = Record<number, string>;
 
 export interface TriageResult {
+  assessmentId?: number;
   risk: RiskLevel;
   score: number;
   hasRedFlag: boolean;

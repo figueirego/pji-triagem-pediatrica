@@ -23,7 +23,7 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Não foi possível carregar os dados.';
 }
 
-export function usePediatricData(): PediatricDataState {
+export function usePediatricData(userId?: string | number | null): PediatricDataState {
   const [data, setData] = useState(initialState);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,14 +32,14 @@ export function usePediatricData(): PediatricDataState {
     setIsLoading(true);
     setError(null);
     try {
-      const nextData = await getPediatricDemoData();
+      const nextData = await getPediatricDemoData(userId);
       setData(nextData);
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     load();

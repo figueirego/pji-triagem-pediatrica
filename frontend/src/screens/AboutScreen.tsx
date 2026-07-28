@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, Icon, ScreenHeader } from '../components';
+import { Card, DisclaimerCard, Icon, ScreenHeader } from '../components';
 import { colors, radii, spacing, typography } from '../theme';
 
 interface AboutScreenProps {
@@ -36,17 +36,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           </Text>
         </Card>
 
-        <Card style={{ backgroundColor: colors.modSofter, borderColor: colors.modSoft }} contentStyle={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Icon name="warn" color={colors.modSolid} size={22} />
-          <View style={{ flex: 1 }}>
-            <Text selectable style={[typography.bodyStrong, { color: colors.warningText }]}>
-              Não substitui consulta médica
-            </Text>
-            <Text selectable style={[typography.caption, { color: colors.warningText, marginTop: spacing.xxs }]}>
-              Em caso de dúvida, consulte um pediatra. Em emergências, ligue 192 ou procure o serviço de saúde mais próximo.
-            </Text>
-          </View>
-        </Card>
+        <DisclaimerCard variant="warning" />
 
         {['Termos de uso', 'Política de privacidade', 'Fontes clínicas e referências', 'Equipe e créditos'].map((item) => (
           <Card key={item} padding={spacing.sm} contentStyle={{ alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}>
@@ -56,6 +46,9 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
             <Icon name="chevronRight" color={colors.textSubtle} size={16} />
           </Card>
         ))}
+        <Text selectable style={[typography.caption, { color: colors.textSubtle, textAlign: 'center' }]}>
+          © 2026 · Projeto acadêmico
+        </Text>
       </View>
     </ScrollView>
   );

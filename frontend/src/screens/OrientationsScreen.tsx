@@ -6,6 +6,7 @@ import type { OrientationCardItem, RiskTone, Symptom } from '../types/domain';
 
 interface OrientationsScreenProps {
   onBack: () => void;
+  onSelectOrientation: (item: OrientationCardItem) => void;
   orientationCards?: OrientationCardItem[];
   symptoms?: Symptom[];
 }
@@ -24,7 +25,7 @@ function toneStyle(tone: RiskTone): OrientationToneStyle {
     : { solid: colors.textMuted, softer: colors.neutralSoft };
 }
 
-export function OrientationsScreen({ onBack, orientationCards = [], symptoms = [] }: OrientationsScreenProps) {
+export function OrientationsScreen({ onBack, onSelectOrientation, orientationCards = [], symptoms = [] }: OrientationsScreenProps) {
   return (
     <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.tabContentBottom }} contentInsetAdjustmentBehavior="automatic">
       <ScreenHeader title="Orientações" onBack={onBack} />
@@ -50,7 +51,12 @@ export function OrientationsScreen({ onBack, orientationCards = [], symptoms = [
           {orientationCards.map((item) => {
             const tone = toneStyle(item.tone);
             return (
-              <Card key={item.id} padding={spacing.sm} contentStyle={{ alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}>
+              <Card
+                key={item.id}
+                onPress={() => onSelectOrientation(item)}
+                padding={spacing.sm}
+                contentStyle={{ alignItems: 'center', flexDirection: 'row', gap: spacing.sm }}
+              >
                 <View
                   style={{
                     alignItems: 'center',
@@ -81,8 +87,18 @@ export function OrientationsScreen({ onBack, orientationCards = [], symptoms = [
           <Text selectable style={[typography.eyebrow, { color: colors.textMuted }]}>
             Por sintoma
           </Text>
-          {symptoms.slice(0, 4).map((symptom) => (
-            <SymptomCard key={symptom.id} symptom={symptom} />
+          {symptoms.map((symptom) => (
+            <SymptomCard
+              key={symptom.id}
+              symptom={symptom}
+              onPress={() => onSelectOrientation({
+                icon: symptom.icon,
+                id: `symptom-${symptom.id}`,
+                subtitle: symptom.desc,
+                title: symptom.name,
+                tone: symptom.tone,
+              })}
+            />
           ))}
         </View>
       </View>

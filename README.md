@@ -6,7 +6,7 @@ Projeto Integrador para sistema de **triagem pediátrica**, contendo frontend mo
 
 - **Frontend:** React Native com [Expo](https://expo.dev/)
 - **Backend:** Java 21 + Spring Boot 3 (Maven)
-- **Banco:** H2 (desenvolvimento) — Postgres recomendado para produção
+- **Banco:** PostgreSQL + Flyway
 
 ## Estrutura do projeto
 
@@ -26,6 +26,7 @@ pji-triagem-pediatrica/
 | Node.js | 20+ | Frontend e CI |
 | npm ou yarn | — | Frontend |
 | Java JDK | 21 | Backend |
+| Docker | — | Postgres local do backend |
 | Expo Go (app) | — | Testar no celular sem build nativa |
 
 ## Como rodar
@@ -33,9 +34,20 @@ pji-triagem-pediatrica/
 ### Backend
 ```bash
 cd backend
+docker compose up -d postgres
+export APP_JWT_SECRET="$(openssl rand -base64 64)"
 ./mvnw spring-boot:run
 ```
-A API sobe em `http://localhost:8080`. Console do H2 disponível em `/h2-console`.
+A API sobe em `http://localhost:8080`. O schema é aplicado pelo Flyway no PostgreSQL local.
+
+Para rodar backend + banco em containers:
+
+```bash
+cd backend
+cp .env.example .env
+# edite APP_JWT_SECRET em .env antes de subir
+docker compose up --build
+```
 
 ### Frontend
 ```bash
@@ -49,10 +61,11 @@ Variáveis úteis:
 
 ```bash
 EXPO_PUBLIC_API_URL=http://<IP-DA-SUA-MAQUINA>:8080
-EXPO_PUBLIC_USE_MOCK_AUTH=true
+EXPO_PUBLIC_USE_MOCK_AUTH=true # opcional, apenas para demo sem backend
 ```
 
 Use o IP local da máquina quando o app estiver em um celular físico na mesma rede Wi-Fi.
+O login real usa CPF (`login`) e senha cadastrados em `POST /auth/register/user`.
 
 ## Qualidade do frontend
 
@@ -65,7 +78,20 @@ O workflow `.github/workflows/frontend.yml` executa `npm ci` e `npm run doctor` 
 
 ## Contrato da API
 
-O contrato inicial do MVP está em [`docs/openapi.yaml`](./docs/openapi.yaml). O frontend deve consumir endpoints refletidos nesse arquivo; quando a API real ainda não existir, use mocks atrás de uma camada de service.
+O contrato atual do backend está em [`docs/openapi.yaml`](./docs/openapi.yaml). O frontend consome os endpoints reais de autenticação, crianças, sintomas, questionário, avaliação, orientações e histórico.
+
+## Build Android APK
+
+Para gerar um APK de demonstração pelo EAS:
+
+```bash
+cd frontend
+npx --yes eas-cli login
+npx --yes eas-cli build:configure
+EXPO_PUBLIC_API_URL=http://<IP-DA-SUA-MAQUINA>:8080 npx --yes eas-cli build --platform android --profile preview
+```
+
+Ao final do build, baixe o artefato `.apk` exibido pelo EAS e instale em um Android de teste. Para apresentação local, mantenha o backend rodando e use `EXPO_PUBLIC_API_URL` com o IP da máquina na mesma rede Wi-Fi.
 
 ## Build iOS e TestFlight
 
@@ -92,6 +118,22 @@ Após o envio, configure os Internal Testers no App Store Connect e compartilhe 
 ## Demonstração
 
 O roteiro de apresentação está em [`docs/DEMO.md`](./docs/DEMO.md), com cenários de baixo risco, risco moderado e alto risco com red flag.
+
+## Prints das telas principais
+
+Os prints usados na apresentação devem ficar em `docs/screenshots/` com estes nomes:
+
+| Tela | Arquivo sugerido |
+|---|---|
+| Login | `docs/screenshots/01-login.png` |
+| Home | `docs/screenshots/02-home.png` |
+| Seleção de sintomas | `docs/screenshots/03-sintomas.png` |
+| Questionário | `docs/screenshots/04-questionario.png` |
+| Resultado | `docs/screenshots/05-resultado.png` |
+| Histórico | `docs/screenshots/06-historico.png` |
+| Perfil | `docs/screenshots/07-perfil.png` |
+
+Para capturar rapidamente, rode `npm start`, abra o app no Expo Go ou emulador, percorra o roteiro de [`docs/DEMO.md`](./docs/DEMO.md) e salve cada tela com os nomes acima.
 
 ## Fluxo de trabalho (importante)
 

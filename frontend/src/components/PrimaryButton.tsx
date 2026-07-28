@@ -42,15 +42,15 @@ export function PrimaryButton({
     <Pressable
       accessibilityRole="button"
       disabled={disabled || loading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        {
-          alignSelf: full ? 'stretch' : 'flex-start',
-          opacity: disabled ? 0.55 : 1,
-          transform: pressed && !disabled ? [{ scale: 0.99 }] : undefined,
-        },
-        style,
-      ]}
+	      onPress={onPress}
+	      style={({ pressed }) => [
+	        {
+	          alignSelf: full ? 'stretch' : 'flex-start',
+	          opacity: disabled ? 0.55 : 1,
+	          transform: pressed && !disabled ? [{ scale: 0.99 }] : [],
+	        },
+	        style,
+	      ]}
     >
       <LinearGradient
         colors={gradient}

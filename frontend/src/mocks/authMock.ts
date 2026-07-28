@@ -9,12 +9,12 @@ function wait(ms = 350): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function mockLogin({ email, password }: LoginCredentials): Promise<AuthSession> {
+export async function mockLogin({ login, password }: LoginCredentials): Promise<AuthSession> {
   await wait();
 
-  const normalizedEmail = String(email || '').trim().toLowerCase();
-  if (!normalizedEmail || !password) {
-    const error: MockError = new Error('Informe email e senha.');
+  const normalizedLogin = String(login || '').replace(/\D/g, '');
+  if (!normalizedLogin || !password) {
+    const error: MockError = new Error('Informe CPF e senha.');
     error.status = 400;
     throw error;
   }
@@ -26,19 +26,20 @@ export async function mockLogin({ email, password }: LoginCredentials): Promise<
   }
 
   return {
-    token: normalizedEmail === demoCredentials.email ? MOCK_TOKEN : `mock-token-${Date.now()}`,
+    token: normalizedLogin === demoCredentials.login ? MOCK_TOKEN : `mock-token-${Date.now()}`,
     user: {
       ...demoUser,
-      email: normalizedEmail,
-      name: normalizedEmail === demoCredentials.email ? demoUser.name : 'Cuidador PediTriagem',
+      id: normalizedLogin,
+      login: normalizedLogin,
+      name: normalizedLogin === demoCredentials.login ? demoUser.name : 'Cuidador PediTriagem',
     },
   };
 }
 
-export async function mockRegister({ name, email, password }: RegisterPayload): Promise<AuthSession> {
+export async function mockRegister({ name, email, login, password }: RegisterPayload): Promise<AuthSession> {
   await wait();
 
-  if (!name || !email || !password) {
+  if (!name || !email || !login || !password) {
     const error: MockError = new Error('Preencha todos os campos obrigatórios.');
     error.status = 400;
     throw error;
@@ -47,9 +48,10 @@ export async function mockRegister({ name, email, password }: RegisterPayload): 
   return {
     token: `mock-token-${Date.now()}`,
     user: {
-      id: `user-${Date.now()}`,
-      name: String(name).trim(),
       email: String(email).trim().toLowerCase(),
+      id: String(login).replace(/\D/g, ''),
+      login: String(login).replace(/\D/g, ''),
+      name: String(name).trim(),
     },
   };
 }

@@ -10,6 +10,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -40,17 +41,20 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(e -> e.authenticationEntryPoint(jwtAuthenticationEntryPoint)) //tratar erros de autenticação
                 .authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                                 .requestMatchers("/auth/login").permitAll()  // Permitir rotas de autenticação sem segurança
                                 .requestMatchers("/auth/refresh").permitAll()
+                                .requestMatchers("/health").permitAll()
                                 .requestMatchers("/actuator/**").permitAll() // Liberar actuator
                                 .requestMatchers("/admin/**").permitAll() // Liberar Spring Boot Admin
                                 .requestMatchers("/auth/teste").hasRole("USER") // Exigir autenticação para todas as outras rotas
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html","/swagger-resources/**").permitAll()
                                 .requestMatchers("/api-docs/**").permitAll()
-                                .requestMatchers("/auth/register/card").permitAll()
+                                .requestMatchers("/auth/register").permitAll()
+                                .requestMatchers("/auth/register/user").permitAll()
                                 .anyRequest().authenticated()  // Exigir autenticação para todas as outras rotas
                 )
                 // é responsável por autenticar as credenciais iniciais do usuário

@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, EmptyState, Icon, Mascot, ProgressBar, ScreenHeader } from '../components';
 import { colors, radii, shadows, spacing, typography } from '../theme';
-import type { ChildProfile, Symptom, TriageAnswers, TriageQuestion, TriageResult, YesNoAnswer } from '../types/domain';
-import { calculateRisk } from '../utils/risk';
+import type { ChildProfile, Symptom, TriageAnswers, TriageQuestion, YesNoAnswer } from '../types/domain';
 
 interface QuizScreenProps {
   onBack: () => void;
-  onFinish: (result: TriageResult) => void;
-  questions?: TriageQuestion[];
+  onFinish: (answers: TriageAnswers) => Promise<void> | void;
+  questions?: TriageQuestion[] | null;
   selectedChild: ChildProfile | null;
   selectedSymptom: Symptom | null;
 }
@@ -22,8 +21,11 @@ const yesNoOptions: { id: YesNoAnswer; label: string; wide?: boolean }[] = [
 export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, selectedSymptom }: QuizScreenProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<TriageAnswers>({});
-  const total = questions.length;
-  const current = questions[step];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const safeQuestions = Array.isArray(questions) ? questions : [];
+  const total = safeQuestions.length;
+  const current = safeQuestions[step];
   const selectedAnswer = answers[step];
 
   if (!current) {
@@ -36,8 +38,11 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
   }
 
   function selectAnswer(value: string) {
+    if (isSubmitting) return;
+
     const nextAnswers = { ...answers, [step]: value };
     setAnswers(nextAnswers);
+    setSubmitError(null);
 
     setTimeout(() => {
       if (step + 1 < total) {
@@ -45,13 +50,12 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
         return;
       }
 
-      const result = calculateRisk(questions, nextAnswers);
-      onFinish({
-        ...result,
-        child: selectedChild,
-        symptom: selectedSymptom,
-        answeredAt: new Date().toISOString(),
-      });
+      setIsSubmitting(true);
+      Promise.resolve(onFinish(nextAnswers))
+        .catch((error) => {
+          setSubmitError(error instanceof Error ? error.message : 'Não foi possível concluir a triagem.');
+        })
+        .finally(() => setIsSubmitting(false));
     }, 140);
   }
 
@@ -98,6 +102,7 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
               return (
                 <Pressable
                   accessibilityRole="button"
+                  disabled={isSubmitting}
                   key={option.id}
                   onPress={() => selectAnswer(option.id)}
                   style={[
@@ -128,6 +133,7 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
               return (
                 <Pressable
                   accessibilityRole="button"
+                  disabled={isSubmitting}
                   key={option.id}
                   onPress={() => selectAnswer(option.id)}
                   style={[
@@ -156,8 +162,16 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
         )}
 
         <Text selectable style={[typography.caption, { color: colors.textSubtle, textAlign: 'center' }]}>
-          Suas respostas ficam neste dispositivo durante a demonstração.
+          {isSubmitting ? 'Calculando classificação...' : 'Suas respostas serão usadas para calcular a classificação.'}
         </Text>
+        <Text selectable style={[typography.caption, { color: colors.textSubtle, textAlign: 'center' }]}>
+          As respostas ficam vinculadas ao usuário autenticado e são usadas apenas para orientar esta triagem.
+        </Text>
+        {submitError ? (
+          <Text selectable style={[typography.caption, { color: colors.dangerText, textAlign: 'center' }]}>
+            {submitError}
+          </Text>
+        ) : null}
       </View>
     </ScrollView>
   );

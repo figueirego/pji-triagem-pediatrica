@@ -23,6 +23,9 @@ export interface AuthContextValue {
 }
 
 interface ErrorResponseData {
+  campos?: { campo?: string; erro?: string }[];
+  errors?: string[];
+  mensagem?: string;
   message?: string;
 }
 
@@ -30,7 +33,8 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 function getAuthErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<ErrorResponseData>(error)) {
-    return error.response?.data?.message || error.message || fallback;
+    const payload = error.response?.data;
+    return payload?.errors?.find(Boolean) || payload?.campos?.[0]?.erro || payload?.mensagem || payload?.message || error.message || fallback;
   }
 
   return error instanceof Error ? error.message : fallback;

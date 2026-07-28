@@ -1,5 +1,7 @@
 # Arquitetura PediTriagem — análise ponta a ponta
 
+> **Nota de status:** este documento registra a arquitetura planejada. O contrato operacional atual do backend integrado está em [`openapi.yaml`](./openapi.yaml).
+
 > Documento de arquitetura do sistema **PediTriagem**, escrito como sessão de mentoria.
 > Cobre visão de contexto, containers, camadas internas (back e front), modelo de dados,
 > engine de triagem, fluxos end-to-end, decisões críticas e insights de domínio (saúde).

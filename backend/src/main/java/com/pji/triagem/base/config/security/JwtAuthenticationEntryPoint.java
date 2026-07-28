@@ -21,7 +21,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             throws IOException {
         res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         res.setContentType("application/json;charset=UTF-8");
-        String errorMessage = "{\"error\": \"" + messageService.getMessage("security.invalid-token") + "\"}";
+        String errorMessage = "{\"status\":401,\"mensagem\":\"Token ausente ou inválido\",\"campos\":[]}";
         res.getWriter().write(errorMessage);
     }
 }

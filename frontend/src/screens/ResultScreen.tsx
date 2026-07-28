@@ -1,7 +1,8 @@
-import { Linking, ScrollView, Text, View } from 'react-native';
-import { Card, GhostButton, Icon, Pill, PrimaryButton, ScreenHeader } from '../components';
+import { Alert, Linking, ScrollView, Share, Text, View } from 'react-native';
+import { Card, DisclaimerCard, GhostButton, Icon, Mascot, Pill, PrimaryButton, ScreenHeader } from '../components';
 import { colors, radii, riskPalette, spacing, typography } from '../theme';
 import type { RiskContent, RiskContentMap, RiskLevel, TriageResult } from '../types/domain';
+import { buildTriageShareMessage } from '../utils/frontendGaps';
 
 interface SummaryRowProps {
   label: string;
@@ -56,6 +57,17 @@ export function ResultScreen({ onBackHome, onGoOrientations, result, risks }: Re
     month: 'short',
   }).format(result?.answeredAt ? new Date(result.answeredAt) : new Date());
 
+  async function handleShareResult() {
+    try {
+      await Share.share({
+        message: buildTriageShareMessage(result, palette.label),
+        title: 'Resultado da triagem pediátrica',
+      });
+    } catch {
+      Alert.alert('Não foi possível compartilhar', 'Tente novamente em instantes.');
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xxl }} contentInsetAdjustmentBehavior="automatic">
       <ScreenHeader title="Resultado da triagem" onBack={onBackHome} />
@@ -74,7 +86,7 @@ export function ResultScreen({ onBackHome, onGoOrientations, result, risks }: Re
               width: 82,
             }}
           >
-            <Icon name={content.icon} color={palette.solid} size={42} strokeWidth={2.4} />
+            <Mascot mood={content.mood} size={58} />
           </View>
           <Pill tone={risk} withDot>
             {palette.label}
@@ -121,13 +133,16 @@ export function ResultScreen({ onBackHome, onGoOrientations, result, risks }: Re
           <SummaryRow label="Criança" value={`${result?.child?.name || 'Maria'}, ${result?.child?.age || '4 anos'}`} />
           <SummaryRow label="Sintoma principal" value={result?.symptom?.name || 'Febre'} />
           <SummaryRow label="Data" value={dateLabel} />
-          <SummaryRow label="Pontuação" value={`${result?.score ?? 0} / 18`} last />
+          <SummaryRow label="Pontuação" value={`${result?.score ?? 0}/10`} last />
         </Card>
 
         <View style={{ gap: spacing.xs }}>
           <PrimaryButton tone={risk} onPress={onGoOrientations} icon={<Icon name={risk === 'high' ? 'phone' : 'book'} color={colors.inverseText} size={18} />}>
             {content.cta}
           </PrimaryButton>
+          <GhostButton onPress={() => { void handleShareResult(); }} icon={<Icon name="share" size={18} color={colors.primary} />}>
+            Compartilhar resultado
+          </GhostButton>
           {risk === 'high' ? (
             <GhostButton onPress={() => { void Linking.openURL('tel:192'); }} icon={<Icon name="phone" size={18} color={colors.highSolid} />}>
               Ligar para SAMU 192
@@ -136,16 +151,7 @@ export function ResultScreen({ onBackHome, onGoOrientations, result, risks }: Re
           <GhostButton onPress={onBackHome}>Voltar ao início</GhostButton>
         </View>
 
-        <Card
-          padding={spacing.sm}
-          style={{ backgroundColor: colors.primarySoft, borderColor: colors.primarySoft }}
-          contentStyle={{ flexDirection: 'row', gap: spacing.sm }}
-        >
-          <Icon name="info" color={colors.primary} size={18} />
-          <Text selectable style={[typography.caption, { color: colors.navy, flex: 1 }]}>
-            Esta orientação é baseada em fluxos pediátricos de triagem e não substitui avaliação médica.
-          </Text>
-        </Card>
+        <DisclaimerCard />
       </View>
     </ScrollView>
   );

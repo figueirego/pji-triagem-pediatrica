@@ -16,19 +16,19 @@ function getSubmitErrorMessage(error: unknown) {
 export function LoginScreen({ onNavigate }: LoginScreenProps) {
   const { authError, isSubmitting, login } = useAuth();
   const demoCredentials = getDemoCredentials();
-  const [email, setEmail] = useState(demoCredentials.email);
+  const [document, setDocument] = useState(demoCredentials.login);
   const [password, setPassword] = useState(demoCredentials.password);
   const [localError, setLocalError] = useState<string | null>(null);
 
   async function handleSubmit() {
     setLocalError(null);
-    if (!email.trim() || !password) {
-      setLocalError('Informe email e senha para continuar.');
+    if (!document.trim() || !password) {
+      setLocalError('Informe CPF e senha para continuar.');
       return;
     }
 
     try {
-      await login({ email, password });
+      await login({ login: document, password });
     } catch (error) {
       setLocalError(getSubmitErrorMessage(error));
     }
@@ -59,12 +59,11 @@ export function LoginScreen({ onNavigate }: LoginScreenProps) {
         <Card contentStyle={{ gap: spacing.md }}>
           <TextField
             autoCapitalize="none"
-            autoComplete="email"
-            inputMode="email"
-            label="Email"
-            onChangeText={setEmail}
-            placeholder="voce@email.com"
-            value={email}
+            inputMode="numeric"
+            label="CPF"
+            onChangeText={setDocument}
+            placeholder="Somente números"
+            value={document}
           />
           <TextField
             label="Senha"
@@ -89,7 +88,7 @@ export function LoginScreen({ onNavigate }: LoginScreenProps) {
         <Card padding={spacing.sm} contentStyle={{ flexDirection: 'row', gap: spacing.sm }}>
           <Icon name="shield" color={colors.primary} size={20} />
           <Text selectable style={[typography.caption, { color: colors.textMuted, flex: 1 }]}>
-            Demo local habilitada. Use qualquer email com senha de 4+ caracteres ou os dados preenchidos.
+            Use o CPF e a senha cadastrados no backend.
           </Text>
         </Card>
       </ScrollView>

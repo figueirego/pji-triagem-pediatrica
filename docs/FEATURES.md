@@ -1,5 +1,7 @@
 # Features e Tasks — Detalhamento
 
+> **Nota de status:** este documento é um plano histórico de tarefas. O contrato operacional atual do backend integrado está em [`openapi.yaml`](./openapi.yaml).
+
 > Detalhamento de cada feature com suas tasks, critérios de aceitação e sugestões de atribuição.
 > Para visão geral, ordem e dependências entre features, ver [`PLAN.md`](./PLAN.md).
 > Para entender o visual de cada tela, ver a pasta [`design/`](../design/) no repositório (abrir `PediTriagem.html` no navegador para preview).

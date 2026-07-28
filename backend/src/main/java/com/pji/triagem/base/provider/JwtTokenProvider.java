@@ -5,6 +5,7 @@ import com.pji.triagem.dto.response.UserAuth;
 import com.pji.triagem.exception.InvalidTokenException;
 import io.jsonwebtoken.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -18,14 +19,15 @@ import java.util.function.Function;
 @Component
 public class JwtTokenProvider {
 
-    public static final String SECRET_KEY = "triagem-8Fv$29Kx!LmQ7pZ#4RtYw@2NcHjA6sUd";
+    private final Key signingKey;
+    private final JwtParser parser;
 
-    @SuppressWarnings("all")
-    private final Key signingKey = new SecretKeySpec(SECRET_KEY.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
-
-    private final JwtParser parser = Jwts.parserBuilder()
-            .setSigningKey(signingKey)
-            .build();
+    public JwtTokenProvider(@Value("${app.jwt.secret}") String secret) {
+        this.signingKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SignatureAlgorithm.HS256.getJcaName());
+        this.parser = Jwts.parserBuilder()
+                .setSigningKey(signingKey)
+                .build();
+    }
 
     /**
      * Faz o parse e retorna os Claims do token.
@@ -89,11 +91,7 @@ public class JwtTokenProvider {
     }
 
     public Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(signingKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        return parser.parseClaimsJws(token).getBody();
     }
 
     public boolean validateToken(String token) {
@@ -131,7 +129,7 @@ public class JwtTokenProvider {
     }
 
     public String extractId(String token) {
-        return getClaim(token, c -> c.get("id", String.class));
+        return getClaim(token, c -> String.valueOf(c.get("id")));
     }
 
     public Boolean isBlockedTemporary(String token) {
@@ -145,4 +143,3 @@ public class JwtTokenProvider {
                 : null;
     }
 }
-

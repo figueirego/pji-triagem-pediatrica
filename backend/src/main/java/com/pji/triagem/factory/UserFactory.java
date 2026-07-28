@@ -19,8 +19,8 @@ public class UserFactory {
      * @param password - Senha do usuário
      * @return - usuário criado
      */
-    public static User createUserTypeClient(String login, String password) {
-        return new User(login, passwordEncoder.encode(password), TypeUser.USER);
+    public static User createUserTypeClient(String login, String password, String email, String name) {
+        return new User(login, passwordEncoder.encode(password), TypeUser.USER, email, name);
     }
 
 

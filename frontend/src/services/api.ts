@@ -3,6 +3,19 @@ import { clearAuth, getToken } from './storage';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
+export interface ApiEnvelope<T> {
+  data: T;
+  errors?: string[];
+  links?: string[];
+}
+
+interface ApiErrorPayload {
+  campos?: { campo?: string; erro?: string }[];
+  errors?: string[];
+  mensagem?: string;
+  message?: string;
+}
+
 type UnauthorizedHandler = () => void | Promise<void>;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
@@ -40,4 +53,23 @@ api.interceptors.response.use(
 export async function checkHealth(): Promise<unknown> {
   const response = await api.get<unknown>('/health');
   return response.data;
+}
+
+export function unwrapData<T>(payload: T | ApiEnvelope<T>): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as ApiEnvelope<T>).data;
+  }
+
+  return payload as T;
+}
+
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError<ApiErrorPayload>(error)) {
+    const payload = error.response?.data;
+    const apiError = payload?.errors?.find(Boolean);
+    const fieldError = payload?.campos?.[0];
+    return apiError || fieldError?.erro || payload?.mensagem || payload?.message || error.message || fallback;
+  }
+
+  return error instanceof Error ? error.message : fallback;
 }

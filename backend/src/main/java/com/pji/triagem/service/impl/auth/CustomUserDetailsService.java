@@ -33,6 +33,6 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new UserAuth(user.getCpf(), user.getPassword(),
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getType().toString())),
-                user.getId(), typeUser, user.getAttemptsCount(), user.getIsBlockedTemporary(), user.getCpf(), user.getIsActive());
+                user.getId(), typeUser, user.getAttemptsCount(), user.getIsBlockedTemporary(), user.getCpf(), user.getIsActive(), user.getName());
     }
 }

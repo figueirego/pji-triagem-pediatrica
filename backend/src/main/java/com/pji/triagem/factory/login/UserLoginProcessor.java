@@ -16,15 +16,15 @@ public class UserLoginProcessor implements LoginProcessor {
     private final JwtTokenProvider tokenProvider;
 
     @Override
-    public InfoLoginDTO resolveName(Long userId) {
-        return null;
+    public InfoLoginDTO resolveName(UserAuth userAuth) {
+        return new InfoLoginDTO(userAuth.getName());
     }
 
     @Override
-    public TokenPair generateToken(UserAuth userAuth, InfoLoginDTO infoLoginDTO) {
+    public TokenPair generateToken(UserAuth userAuth, InfoLoginDTO i) {
         return new TokenPair(
-                tokenProvider.createAccessToken(userAuth, null),
-                tokenProvider.createRefreshToken(userAuth, null)
+                tokenProvider.createAccessToken(userAuth, i.getName()),
+                tokenProvider.createRefreshToken(userAuth, i.getName())
         );
     }
 

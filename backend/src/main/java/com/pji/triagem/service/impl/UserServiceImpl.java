@@ -4,7 +4,9 @@ import com.pji.triagem.base.repository.BaseRepository;
 import com.pji.triagem.base.service.impl.BaseServiceImpl;
 import com.pji.triagem.base.utils.ReplaceUtils;
 import com.pji.triagem.base.validator.DocumentValidator;
+import com.pji.triagem.dto.request.UpdateUserProfileRequest;
 import com.pji.triagem.dto.response.UserAuth;
+import com.pji.triagem.exception.InformationFoundExeption;
 import com.pji.triagem.exception.InvalidLoginException;
 import com.pji.triagem.exception.ResourceNotFoundException;
 import com.pji.triagem.exception.ValidationException;
@@ -17,8 +19,10 @@ import com.pji.triagem.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @AllArgsConstructor
@@ -26,8 +30,6 @@ import org.springframework.stereotype.Service;
 public class UserServiceImpl extends BaseServiceImpl<User> implements UserService {
 
     private final UserRepository userRepository;
-
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     protected BaseRepository<User, Long> getRepository() {
@@ -69,15 +71,6 @@ public class UserServiceImpl extends BaseServiceImpl<User> implements UserServic
         getSelf().save(user);
     }
 
-
-    public User registerUser(String login, String password, TypeUser type) {
-        login = ReplaceUtils.refactoryString(login);
-        password = ReplaceUtils.removeSpacesEmpty(password);
-        validateRegisterUser(login, type);
-        return getSelf().save(UserFactory.createUserTypeClient(login, password));
-
-    }
-
     public void validateRegisterUser(String login, TypeUser type) {
         DocumentValidator validator = DocumentValidatorFactory.getValidator(login);
         if(!validator.isValid(login)){
@@ -104,19 +97,63 @@ public class UserServiceImpl extends BaseServiceImpl<User> implements UserServic
     }
 
     @Override
-    public User registerClientUser(String login, String password, TypeUser typeUser) {
+    public User registerClientUser(String login, String password, TypeUser typeUser, String email, String name) {
         login = ReplaceUtils.refactoryString(login);
         password = ReplaceUtils.removeSpacesEmpty(password);
+        String normalizedEmail = normalizeRequiredEmail(email);
 
         DocumentValidator validator = DocumentValidatorFactory.getValidator(login);
         if(!validator.isValid(login)){
             throw new ValidationException("Não foi possivel criar o usuário , pois o CPF/CNPJ não é válido");
         }
+        if(userRepository.existsByLoginAndType(login, typeUser)){
+            throw new InformationFoundExeption("CPF já cadastrado");
+        }
+        if(userRepository.existsByEmailAndType(normalizedEmail, typeUser)){
+            throw new InformationFoundExeption("email já cadastrado");
+        }
 
-        User newUser = UserFactory.createUserTypeClient(login, password);
-        return userRepository.findByLoginAndType(login, typeUser)
-                .orElseGet(() -> getSelf().save(newUser));
+        User newUser = UserFactory.createUserTypeClient(login, password, normalizedEmail, name.trim());
+        return getSelf().save(newUser);
     }
 
+    @Override
+    @Transactional
+    public User updateProfile(Long userId, UpdateUserProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        String name = normalizeOptional(request.getName());
+        String email = normalizeOptional(request.getEmail());
+
+        if (name != null) {
+            user.setName(name);
+        }
+        if (email != null) {
+            user.setEmail(email);
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isBlank()) {
+            throw new ValidationException("Campo informado não pode ser vazio");
+        }
+        return trimmed;
+    }
+
+    private String normalizeRequiredEmail(String value) {
+        String email = normalizeOptional(value);
+        if (email == null) {
+            throw new ValidationException("Email é obrigatório");
+        }
+        return email.toLowerCase();
+    }
 
 }

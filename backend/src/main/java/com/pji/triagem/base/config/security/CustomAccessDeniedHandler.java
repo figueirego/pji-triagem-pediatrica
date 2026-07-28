@@ -20,7 +20,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, java.io.IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
-        String errorMessage = "{\"error\": \"" + messageService.getMessage("security.invalid-token") + "\"}";
+        String errorMessage = "{\"status\":401,\"mensagem\":\"Token ausente ou inválido\",\"campos\":[]}";
         response.getWriter().write(errorMessage);
     }
 }

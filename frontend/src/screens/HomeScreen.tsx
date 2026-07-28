@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, HistoryRow, Icon, Mascot, SectionTitle } from '../components';
+import { Card, DisclaimerCard, HistoryRow, Icon, Mascot, SectionTitle } from '../components';
 import { colors, radii, riskPalette, shadows, spacing, typography } from '../theme';
 import type { AuthUser } from '../types/auth';
 import type { AppScreen, ChildProfile, HistoryItem, RiskTone } from '../types/domain';
@@ -211,36 +211,25 @@ export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChil
         </Card>
       </View>
 
-      <Card
-        style={{ backgroundColor: colors.primarySoft, borderColor: colors.primarySoft }}
-        contentStyle={{ flexDirection: 'row', gap: spacing.sm }}
-      >
-        <Icon name="shield" color={colors.primary} size={20} />
-        <View style={{ flex: 1 }}>
-          <Text selectable style={[typography.bodyStrong, { color: colors.navy }]}>
-            Apoio à decisão, não diagnóstico
-          </Text>
-          <Text selectable style={[typography.caption, { color: colors.textMuted, marginTop: spacing.xxs }]}>
-            O aplicativo orienta sinais iniciais e não substitui avaliação de um pediatra.
-          </Text>
-        </View>
-      </Card>
+      <DisclaimerCard />
 
-      <View style={{ gap: spacing.xs }}>
-        <SectionTitle
-          title="Avaliações recentes"
-          action={
-            <Pressable onPress={() => onGo('history')}>
-              <Text selectable={false} style={[typography.caption, { color: colors.primary }]}>
-                Ver todas
-              </Text>
-            </Pressable>
-          }
-        />
-        {historyItems.slice(0, 2).map((item) => (
-          <HistoryRow item={item} key={item.id} />
-        ))}
-      </View>
+      {historyItems.length ? (
+        <View style={{ gap: spacing.xs }}>
+          <SectionTitle
+            title="Avaliações recentes"
+            action={
+              <Pressable onPress={() => onGo('history')}>
+                <Text selectable={false} style={[typography.caption, { color: colors.primary }]}>
+                  Ver todas
+                </Text>
+              </Pressable>
+            }
+          />
+          {historyItems.slice(0, 2).map((item) => (
+            <HistoryRow item={item} key={item.id} />
+          ))}
+        </View>
+      ) : null}
     </ScrollView>
   );
 }

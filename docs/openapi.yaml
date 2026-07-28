@@ -2,35 +2,32 @@ openapi: 3.0.3
 info:
   title: PediTriagem API
   version: 1.0.0
-  description: Contrato inicial do MVP para integração entre frontend Expo e backend Spring Boot.
+  description: Contrato atual do backend Spring Boot integrado ao app Expo.
 servers:
   - url: http://localhost:8080
     description: Desenvolvimento local
 security:
   - bearerAuth: []
 tags:
-  - name: Health
   - name: Auth
   - name: Crianças
   - name: Sintomas
   - name: Avaliações
+  - name: Usuários
+  - name: Health
 paths:
   /health:
     get:
       tags: [Health]
-      summary: Verifica disponibilidade da API
+      summary: Verifica disponibilidade da aplicação
       security: []
       responses:
         '200':
-          description: API operacional
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-  /auth/register:
+          description: Serviço operacional
+  /auth/register/user:
     post:
       tags: [Auth]
-      summary: Cria uma conta de cuidador
+      summary: Cria usuário cuidador
       security: []
       requestBody:
         required: true
@@ -40,19 +37,17 @@ paths:
               $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: Conta criada e sessão iniciada
+          description: Usuário criado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemas/StringEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
   /auth/login:
     post:
       tags: [Auth]
-      summary: Autentica cuidador com email e senha
+      summary: Autentica usuário por CPF/CNPJ e senha
       security: []
       requestBody:
         required: true
@@ -62,13 +57,11 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Sessão autenticada
+          description: Tokens JWT
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: '#/components/schemas/TokenEnvelope'
         '401':
           $ref: '#/components/responses/Unauthorized'
   /auth/me:
@@ -77,206 +70,173 @@ paths:
       summary: Retorna o usuário autenticado
       responses:
         '200':
-          description: Usuário autenticado
+          description: Perfil autenticado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Usuario'
+                $ref: '#/components/schemas/UserProfileEnvelope'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /api/criancas:
+  /api/usuarios/me:
+    patch:
+      tags: [Usuários]
+      summary: Atualiza nome e email do usuário autenticado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /children/user/{userId}:
     get:
       tags: [Crianças]
-      summary: Lista crianças cadastradas do cuidador
+      summary: Lista crianças de um usuário
+      parameters:
+        - $ref: '#/components/parameters/UserId'
       responses:
         '200':
           description: Crianças cadastradas
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CriancaResponse'
+                $ref: '#/components/schemas/ChildHomeListEnvelope'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /children/{userId}:
     post:
       tags: [Crianças]
-      summary: Cadastra uma criança
+      summary: Cadastra criança para um usuário
+      parameters:
+        - $ref: '#/components/parameters/UserId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CriancaRequest'
+              $ref: '#/components/schemas/CreateChildRequest'
       responses:
         '201':
           description: Criança cadastrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CriancaResponse'
+                $ref: '#/components/schemas/ChildEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /api/criancas/{id}:
-    parameters:
-      - $ref: '#/components/parameters/Id'
+  /children/{userId}/children/{childId}:
     get:
       tags: [Crianças]
       summary: Busca criança por ID
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/ChildId'
       responses:
         '200':
           description: Criança encontrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CriancaResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/ChildEnvelope'
         '404':
           $ref: '#/components/responses/NotFound'
-    put:
-      tags: [Crianças]
-      summary: Atualiza dados de uma criança
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CriancaRequest'
-      responses:
-        '200':
-          description: Criança atualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CriancaResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [Crianças]
-      summary: Remove uma criança
-      responses:
-        '204':
-          description: Criança removida
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/sintomas:
+  /symptoms:
     get:
       tags: [Sintomas]
-      summary: Lista sintomas disponíveis para triagem
+      summary: Lista sintomas disponíveis
       responses:
         '200':
           description: Catálogo de sintomas
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SintomaResponse'
+                $ref: '#/components/schemas/SymptomListEnvelope'
         '401':
           $ref: '#/components/responses/Unauthorized'
-  /api/sintomas/{id}/perguntas:
-    get:
-      tags: [Sintomas]
-      summary: Lista perguntas de triagem para um sintoma
-      parameters:
-        - $ref: '#/components/parameters/Id'
-      responses:
-        '200':
-          description: Perguntas do sintoma
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PerguntaResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/avaliacoes:
-    get:
-      tags: [Avaliações]
-      summary: Lista avaliações do cuidador autenticado
-      parameters:
-        - name: criancaId
-          in: query
-          schema:
-            type: string
-            format: uuid
-        - name: risco
-          in: query
-          schema:
-            $ref: '#/components/schemas/Risco'
-      responses:
-        '200':
-          description: Avaliações encontradas
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AvaliacaoResumo'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+  /assessments/questionnaire:
     post:
       tags: [Avaliações]
-      summary: Registra uma avaliação de triagem
+      summary: Monta questionário para um ou mais sintomas
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AvaliacaoRequest'
+              $ref: '#/components/schemas/QuestionnaireRequest'
       responses:
-        '201':
-          description: Avaliação registrada
+        '200':
+          description: Questionário agrupado por sintoma
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AvaliacaoResponse'
+                $ref: '#/components/schemas/QuestionnaireEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-  /api/avaliacoes/stats:
-    get:
+  /assessments:
+    post:
       tags: [Avaliações]
-      summary: Retorna estatísticas resumidas do histórico
+      summary: Registra avaliação e calcula classificação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
       responses:
-        '200':
-          description: Estatísticas do cuidador
+        '201':
+          description: Resultado calculado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AvaliacaoStats'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-  /api/avaliacoes/{id}:
+                $ref: '#/components/schemas/AssessmentResultEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /assessments/{assessmentId}/orientation:
     get:
       tags: [Avaliações]
-      summary: Busca detalhes de uma avaliação
+      summary: Retorna orientações de uma avaliação
       parameters:
-        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/AssessmentId'
       responses:
         '200':
-          description: Avaliação encontrada
+          description: Orientações agrupadas
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AvaliacaoResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: '#/components/schemas/OrientationEnvelope'
         '404':
           $ref: '#/components/responses/NotFound'
+  /assessments/users/{userId}/history:
+    get:
+      tags: [Avaliações]
+      summary: Retorna histórico de avaliações por usuário
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: childId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Histórico do usuário
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentHistoryEnvelope'
 components:
   securitySchemes:
     bearerAuth:
@@ -284,264 +244,527 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
-    Id:
-      name: id
+    UserId:
+      name: userId
       in: path
       required: true
       schema:
-        type: string
-        format: uuid
+        type: integer
+        format: int64
+    ChildId:
+      name: childId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    AssessmentId:
+      name: assessmentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
   responses:
     BadRequest:
       description: Requisição inválida
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ErrorEnvelope'
     Unauthorized:
       description: Token ausente, inválido ou expirado
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ErrorEnvelope'
     NotFound:
       description: Recurso não encontrado
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ApiError'
-    Conflict:
-      description: Conflito de negócio
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ApiError'
+            $ref: '#/components/schemas/ErrorEnvelope'
   schemas:
-    ApiError:
+    ResponseEnvelope:
       type: object
-      required: [status, message, timestamp]
       properties:
-        status:
-          type: integer
-          example: 400
-        message:
-          type: string
-          example: Campo obrigatório não informado
-        path:
-          type: string
-          example: /api/criancas
-        timestamp:
-          type: string
-          format: date-time
-    HealthResponse:
-      type: object
-      required: [status, timestamp]
-      properties:
-        status:
-          type: string
-          example: ok
-        timestamp:
-          type: string
-          format: date-time
+        data:
+          nullable: true
+        errors:
+          type: array
+          items:
+            type: string
+        links:
+          type: array
+          items:
+            type: string
+    ErrorEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+      example:
+        data: null
+        errors: ['Usuário ou senha inválidos']
+        links: []
+    StringEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              type: string
+              example: Usuario criado com sucesso
     RegisterRequest:
       type: object
-      required: [name, email, password]
+      required: [login, password, email, name]
       properties:
-        name:
+        login:
           type: string
-          example: Camila Ribeiro
+          description: CPF/CNPJ sem pontuação
+          example: '52998224725'
+        password:
+          type: string
+          example: peditriagem123
         email:
           type: string
           format: email
           example: camila.demo@peditriagem.app
-        password:
-          type: string
-          minLength: 6
-          example: peditriagem123
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 6
-    AuthResponse:
-      type: object
-      required: [token, user]
-      properties:
-        token:
-          type: string
-          description: JWT de acesso
-        user:
-          $ref: '#/components/schemas/Usuario'
-    Usuario:
-      type: object
-      required: [id, name, email]
-      properties:
-        id:
-          type: string
-          format: uuid
         name:
           type: string
+          example: Camila Ribeiro
+    LoginRequest:
+      type: object
+      required: [login, password]
+      properties:
+        login:
+          type: string
+          example: '52998224725'
+        password:
+          type: string
+          example: peditriagem123
+    TokenEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TokenResponse'
+    TokenResponse:
+      type: object
+      required: [accessToken, refreshToken, accessTokenExpiration, refreshTokenExpiration]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessTokenExpiration:
+          type: integer
+          format: int64
+        refreshTokenExpiration:
+          type: integer
+          format: int64
+    UserProfileEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/UserProfileResponse'
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        login:
+          type: string
+          description: CPF/CNPJ sem pontuação
         email:
           type: string
           format: email
-    CriancaRequest:
+        name:
+          type: string
+    UpdateUserProfileRequest:
       type: object
-      required: [nome, dataNascimento]
       properties:
-        nome:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Camila Ribeiro
+        email:
+          type: string
+          format: email
+          maxLength: 120
+          example: camila.ribeiro@example.com
+    CreateChildRequest:
+      type: object
+      required: [name, birthDate]
+      properties:
+        name:
           type: string
           example: Maria
-        dataNascimento:
+        cpf:
+          type: string
+          example: ''
+        birthDate:
           type: string
           format: date
-          example: 2022-05-04
-        pesoKg:
+          example: '2022-05-04'
+        weightKg:
           type: number
           format: double
-          example: 17.0
-    CriancaResponse:
+          example: 17
+        avatarEmoji:
+          type: string
+          example: MA
+    ChildHomeListEnvelope:
       allOf:
-        - $ref: '#/components/schemas/CriancaRequest'
+        - $ref: '#/components/schemas/ResponseEnvelope'
         - type: object
-          required: [id, createdAt]
           properties:
-            id:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChildHomeResponse'
+    ChildEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ChildResponse'
+    ChildHomeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        age:
+          type: string
+          example: 4 anos
+        ageInMonths:
+          type: integer
+        avatarEmoji:
+          type: string
+        totalAssessments:
+          type: integer
+          format: int64
+        lastAssessmentAt:
+          type: string
+          format: date-time
+    ChildResponse:
+      allOf:
+        - $ref: '#/components/schemas/ChildHomeResponse'
+        - type: object
+          properties:
+            cpf:
               type: string
-              format: uuid
-            idadeDescricao:
+            birthDate:
               type: string
-              example: 4 anos
+              format: date
+            weightKg:
+              type: number
             createdAt:
               type: string
               format: date-time
-    SintomaResponse:
+    SymptomListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/SymptomResponse'
+    SymptomResponse:
       type: object
-      required: [id, nome, descricao, ativo]
       properties:
         id:
+          type: integer
+          format: int64
+        code:
           type: string
-          example: fever
-        nome:
+          example: FEBRE
+        name:
           type: string
           example: Febre
-        descricao:
+        shortDescription:
           type: string
-          example: Temperatura acima de 37,8°C
-        icone:
+        iconRef:
           type: string
           example: thermo
-        ativo:
-          type: boolean
-    PerguntaResponse:
-      type: object
-      required: [id, texto, tipo, ordem]
-      properties:
-        id:
+        colorHex:
           type: string
-          example: fever-temperature
-        texto:
-          type: string
-          example: Qual a temperatura medida agora?
-        ajuda:
-          type: string
-          example: Termômetro axilar é o mais comum.
-        tipo:
-          type: string
-          enum: [OPTIONS, YES_NO]
-        ordem:
+          example: '#F59E5C'
+        order:
           type: integer
-        opcoes:
+    QuestionnaireRequest:
+      type: object
+      required: [symptomIds]
+      properties:
+        symptomIds:
           type: array
           items:
-            $ref: '#/components/schemas/PerguntaOpcao'
-    PerguntaOpcao:
+            type: integer
+            format: int64
+    QuestionnaireEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/QuestionnaireResponse'
+    QuestionnaireResponse:
       type: object
-      required: [id, label]
       properties:
-        id:
-          type: string
-        label:
-          type: string
-    AvaliacaoRequest:
-      type: object
-      required: [criancaId, sintomaId, respostas]
-      properties:
-        criancaId:
-          type: string
-          format: uuid
-        sintomaId:
-          type: string
-          example: fever
-        respostas:
+        symptoms:
           type: array
           items:
-            $ref: '#/components/schemas/RespostaTriagem'
-    RespostaTriagem:
+            $ref: '#/components/schemas/QuestionnaireSymptomResponse'
+    QuestionnaireSymptomResponse:
       type: object
-      required: [perguntaId, resposta]
       properties:
-        perguntaId:
+        symptomId:
+          type: integer
+          format: int64
+        code:
           type: string
-        resposta:
+        name:
           type: string
-    AvaliacaoResponse:
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionResponse'
+    QuestionResponse:
       type: object
-      required: [id, crianca, sintoma, risco, score, redFlag, orientacoes, createdAt]
       properties:
         id:
+          type: integer
+          format: int64
+        code:
           type: string
-          format: uuid
-        crianca:
-          $ref: '#/components/schemas/CriancaResponse'
-        sintoma:
-          $ref: '#/components/schemas/SintomaResponse'
-        risco:
-          $ref: '#/components/schemas/Risco'
+        text:
+          type: string
+        subtitle:
+          type: string
+        type:
+          type: string
+          enum: [YESNO, OPTIONS]
+        order:
+          type: integer
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionOptionResponse'
+    QuestionOptionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        text:
+          type: string
+        order:
+          type: integer
+    CreateAssessmentRequest:
+      type: object
+      required: [childId, symptoms]
+      properties:
+        childId:
+          type: integer
+          format: int64
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateAssessmentSymptomRequest'
+    CreateAssessmentSymptomRequest:
+      type: object
+      required: [symptomId, answers]
+      properties:
+        symptomId:
+          type: integer
+          format: int64
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateAssessmentAnswerRequest'
+    CreateAssessmentAnswerRequest:
+      type: object
+      properties:
+        questionId:
+          type: integer
+          format: int64
+        optionId:
+          type: integer
+          format: int64
+        answer:
+          type: string
+          enum: [YES, NO, DUNNO]
+    AssessmentResultEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AssessmentResultResponse'
+    AssessmentResultResponse:
+      type: object
+      properties:
+        assessmentId:
+          type: integer
+          format: int64
+        childId:
+          type: integer
+          format: int64
+        finalClassification:
+          type: string
+          enum: [LOW, MOD, HIGH]
+        totalScore:
+          type: integer
+        redFlagDetected:
+          type: boolean
+        symptoms:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentSymptomResultResponse'
+    AssessmentSymptomResultResponse:
+      type: object
+      properties:
+        symptomId:
+          type: integer
+          format: int64
+        symptomName:
+          type: string
+        classification:
+          type: string
+          enum: [LOW, MOD, HIGH]
         score:
           type: integer
-          example: 6
-        redFlag:
+        redFlagDetected:
           type: boolean
-        orientacoes:
+    OrientationEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/OrientationResponse'
+    OrientationResponse:
+      type: object
+      properties:
+        assessmentId:
+          type: integer
+          format: int64
+        childId:
+          type: integer
+          format: int64
+        childName:
+          type: string
+        finalClassification:
+          type: string
+          enum: [LOW, MOD, HIGH]
+        title:
+          type: string
+        description:
+          type: string
+        mainActions:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrientationItemResponse'
+        warningSigns:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrientationItemResponse'
+        homeCare:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrientationItemResponse'
+        whenSeekHelp:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrientationItemResponse'
+        disclaimer:
+          type: string
+    OrientationItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        symptomId:
+          type: integer
+          format: int64
+        symptomName:
+          type: string
+    AssessmentHistoryEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AssessmentHistoryResponse'
+    AssessmentHistoryResponse:
+      type: object
+      properties:
+        totalAssessments:
+          type: integer
+          format: int64
+        lowRiskCount:
+          type: integer
+          format: int64
+        moderateRiskCount:
+          type: integer
+          format: int64
+        highRiskCount:
+          type: integer
+          format: int64
+        selectedChildId:
+          type: integer
+          format: int64
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentHistoryChildResponse'
+        assessments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentHistoryItemResponse'
+    AssessmentHistoryChildResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    AssessmentHistoryItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        childId:
+          type: integer
+          format: int64
+        childName:
+          type: string
+        symptoms:
           type: array
           items:
             type: string
         createdAt:
           type: string
           format: date-time
-    AvaliacaoResumo:
-      type: object
-      required: [id, criancaNome, sintomaNome, risco, createdAt]
-      properties:
-        id:
+        classification:
           type: string
-          format: uuid
-        criancaNome:
-          type: string
-        sintomaNome:
-          type: string
-        risco:
-          $ref: '#/components/schemas/Risco'
-        createdAt:
-          type: string
-          format: date-time
-    AvaliacaoStats:
-      type: object
-      required: [total, baixoRisco, riscoModerado, altoRisco]
-      properties:
-        total:
-          type: integer
-        baixoRisco:
-          type: integer
-        riscoModerado:
-          type: integer
-        altoRisco:
-          type: integer
-    Risco:
-      type: string
-      enum: [LOW, MOD, HIGH]
+          enum: [LOW, MOD, HIGH]

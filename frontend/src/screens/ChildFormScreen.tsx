@@ -1,36 +1,61 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Card, Icon, PrimaryButton, ScreenHeader, TextField } from '../components';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Card, GhostButton, Icon, PrimaryButton, ScreenHeader, TextField } from '../components';
 import { colors, radii, riskPalette, shadows, spacing, typography } from '../theme';
+import { parseAgeAmount } from '../utils/age';
 import type { AgeUnit, ChildProfile, RiskTone } from '../types/domain';
 
 type AvatarTint = Extract<RiskTone, 'primary' | 'low' | 'mod' | 'high'>;
 
-const avatarOptions: { id: AvatarTint; tint: string }[] = [
-  { id: 'primary', tint: colors.primarySoft },
-  { id: 'low', tint: riskPalette.low.softer },
-  { id: 'mod', tint: riskPalette.mod.softer },
-  { id: 'high', tint: riskPalette.high.softer },
+const avatarOptions = [
+  { emoji: '🌸', tint: colors.primarySoft },
+  { emoji: '🌱', tint: riskPalette.low.softer },
+  { emoji: '⭐', tint: riskPalette.mod.softer },
+  { emoji: '🐻', tint: colors.neutralSoft },
+  { emoji: '🦊', tint: riskPalette.high.softer },
+  { emoji: '🌈', tint: colors.primarySoft },
 ];
 
 interface ChildFormScreenProps {
+  initialChild?: ChildProfile | null;
   onBack: () => void;
-  onSave: (child: ChildProfile) => void;
+  onDelete?: (child: ChildProfile) => Promise<void> | void;
+  onSave: (child: ChildProfile) => Promise<void> | void;
 }
 
-export function ChildFormScreen({ onBack, onSave }: ChildFormScreenProps) {
-  const [name, setName] = useState('');
-  const [ageValue, setAgeValue] = useState('');
-  const [ageUnit, setAgeUnit] = useState<AgeUnit>('anos');
-  const [weight, setWeight] = useState('');
-  const [tint, setTint] = useState<AvatarTint>('primary');
-  const [error, setError] = useState<string | null>(null);
+function avatarTint(value?: RiskTone): AvatarTint {
+  return value === 'low' || value === 'mod' || value === 'high' ? value : 'primary';
+}
 
-  function handleSave() {
+function weightValue(weight?: string): string {
+  const match = (weight || '').replace(',', '.').match(/\d+(\.\d+)?/);
+  return match?.[0] || '';
+}
+
+export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: ChildFormScreenProps) {
+  const isEditing = Boolean(initialChild);
+  const [name, setName] = useState(initialChild?.name || '');
+  const [ageValue, setAgeValue] = useState(initialChild?.ageValue || '');
+  const [ageUnit, setAgeUnit] = useState<AgeUnit>(initialChild?.ageUnit || 'anos');
+  const [weight, setWeight] = useState(weightValue(initialChild?.weight));
+  const [tint, setTint] = useState<AvatarTint>(avatarTint(initialChild?.tint));
+  const [avatarEmoji, setAvatarEmoji] = useState(initialChild?.avatarEmoji || '🌸');
+  const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleSave() {
     setError(null);
     const trimmedName = name.trim();
     if (!trimmedName || !ageValue.trim()) {
       setError('Informe nome e idade da criança.');
+      return;
+    }
+    let parsedAgeValue: number;
+    try {
+      parsedAgeValue = parseAgeAmount(ageValue, ageUnit);
+    } catch (ageError) {
+      setError(ageError instanceof Error ? ageError.message : 'Informe uma idade válida.');
       return;
     }
 
@@ -43,28 +68,60 @@ export function ChildFormScreen({ onBack, onSave }: ChildFormScreenProps) {
       .toUpperCase();
 
     const child: ChildProfile = {
-      id: `${trimmedName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+      id: initialChild?.id || `${trimmedName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+      backendId: initialChild?.backendId,
       name: trimmedName,
-      ageValue,
+      ageValue: String(parsedAgeValue),
       ageUnit,
-      age: `${ageValue} ${ageUnit}`,
+      age: `${parsedAgeValue} ${ageUnit}`,
       weight: weight ? `${weight} kg` : 'Peso não informado',
       initials,
       tint,
+      avatarEmoji,
     };
 
-    onSave(child);
+    setIsSaving(true);
+    try {
+      await onSave(child);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar a criança.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleDelete() {
+    if (!initialChild || !onDelete) return;
+
+    Alert.alert('Excluir criança', `Remover ${initialChild.name} do perfil?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        onPress: async () => {
+          setError(null);
+          setIsDeleting(true);
+          try {
+            await onDelete(initialChild);
+          } catch (deleteError) {
+            setError(deleteError instanceof Error ? deleteError.message : 'Não foi possível excluir a criança.');
+          } finally {
+            setIsDeleting(false);
+          }
+        },
+        style: 'destructive',
+        text: 'Excluir',
+      },
+    ]);
   }
 
   return (
     <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xxl }} contentInsetAdjustmentBehavior="automatic">
-      <ScreenHeader title="Cadastrar criança" onBack={onBack} />
+      <ScreenHeader title={isEditing ? 'Editar criança' : 'Cadastrar criança'} onBack={onBack} />
       <View style={{ alignItems: 'center', gap: spacing.sm }}>
         <View
           style={[
             {
               alignItems: 'center',
-              backgroundColor: avatarOptions.find((item) => item.id === tint)?.tint || colors.primarySoft,
+              backgroundColor: avatarOptions.find((item) => item.emoji === avatarEmoji)?.tint || colors.primarySoft,
               borderRadius: radii.avatar,
               height: 80,
               justifyContent: 'center',
@@ -74,19 +131,23 @@ export function ChildFormScreen({ onBack, onSave }: ChildFormScreenProps) {
           ]}
         >
           <Text selectable={false} style={[typography.title, { color: colors.navy }]}>
-            {(name.trim().slice(0, 2) || 'PT').toUpperCase()}
+            {avatarEmoji}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center', maxWidth: 260 }}>
           {avatarOptions.map((option) => (
             <Pressable
               accessibilityRole="button"
-              key={option.id}
-              onPress={() => setTint(option.id)}
+              accessibilityLabel={`Avatar ${option.emoji}`}
+              key={option.emoji}
+              onPress={() => {
+                setAvatarEmoji(option.emoji);
+                setTint(option.emoji === '🌱' ? 'low' : option.emoji === '⭐' ? 'mod' : option.emoji === '🦊' ? 'high' : 'primary');
+              }}
               style={[
                 {
                   alignItems: 'center',
-                  backgroundColor: tint === option.id ? colors.navy : colors.surface,
+                  backgroundColor: avatarEmoji === option.emoji ? colors.navy : colors.surface,
                   borderRadius: radii.md,
                   height: 34,
                   justifyContent: 'center',
@@ -95,7 +156,9 @@ export function ChildFormScreen({ onBack, onSave }: ChildFormScreenProps) {
                 shadows.card,
               ]}
             >
-              <View style={{ backgroundColor: option.tint, borderRadius: radii.pill, height: 14, width: 14 }} />
+              <Text selectable={false} style={typography.caption}>
+                {option.emoji}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -159,9 +222,24 @@ export function ChildFormScreen({ onBack, onSave }: ChildFormScreenProps) {
             {error}
           </Text>
         ) : null}
-        <PrimaryButton onPress={handleSave} icon={<Icon name="check" color={colors.inverseText} size={18} />}>
-          Salvar criança
+        <PrimaryButton
+          disabled={isDeleting}
+          loading={isSaving}
+          onPress={handleSave}
+          icon={<Icon name="check" color={colors.inverseText} size={18} />}
+        >
+          {isEditing ? 'Salvar alterações' : 'Salvar criança'}
         </PrimaryButton>
+        {isEditing && onDelete ? (
+          <GhostButton
+            disabled={isSaving || isDeleting}
+            onPress={handleDelete}
+            icon={<Icon name="close" color={colors.highSolid} size={18} />}
+            style={{ borderColor: colors.highSoft }}
+          >
+            {isDeleting ? 'Excluindo...' : 'Excluir criança'}
+          </GhostButton>
+        ) : null}
       </Card>
     </ScrollView>
   );

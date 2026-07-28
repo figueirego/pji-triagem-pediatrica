@@ -26,9 +26,10 @@ public class UserAuth extends User {
     private Integer attemptsCount;
     private Boolean isBlockedTemporary;
     private Boolean isActive;
+    private String name;
 
     public UserAuth(String username, String password, Collection<? extends GrantedAuthority> authorities, Long id, TypeUser typeUser,
-                    Integer attemptsCount, Boolean isBlockedTemporary, String login, Boolean isActive) {
+                    Integer attemptsCount, Boolean isBlockedTemporary, String login, Boolean isActive, String name) {
 
         super(username, password, authorities);
         this.id = id;
@@ -37,6 +38,7 @@ public class UserAuth extends User {
         this.isBlockedTemporary = isBlockedTemporary;
         this.login = login;
         this.isActive = isActive;
+        this.name = name;
     }
 
     public static UserAuth fromEntity(com.pji.triagem.model.User userEntity) {
@@ -53,7 +55,8 @@ public class UserAuth extends User {
                 userEntity.getAttemptsCount(),
                 userEntity.getIsBlockedTemporary(),
                 userEntity.getCpf(),
-                userEntity.getIsActive()
+                userEntity.getIsActive(),
+                userEntity.getName()
 
         );
     }

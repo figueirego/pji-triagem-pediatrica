@@ -10,12 +10,13 @@ import type { AuthUser, LoginCredentials } from '../types/auth';
 
 export const demoUser: AuthUser = {
   id: 'user-demo',
+  login: '52998224725',
   name: 'Camila Ribeiro',
   email: 'camila.demo@peditriagem.app',
 };
 
 export const demoCredentials: LoginCredentials = {
-  email: demoUser.email,
+  login: demoUser.login || '52998224725',
   password: 'peditriagem123',
 };
 

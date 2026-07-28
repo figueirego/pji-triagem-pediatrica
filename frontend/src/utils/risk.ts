@@ -1,16 +1,17 @@
 import type { RiskLevel, TriageAnswers, TriageQuestion, TriageResult, YesNoAnswer } from '../types/domain';
 
-export function calculateRisk(questions: TriageQuestion[], answers: TriageAnswers): TriageResult {
+export function calculateRisk(questions: TriageQuestion[] | null | undefined, answers: TriageAnswers): TriageResult {
   let score = 0;
   let hasRedFlag = false;
+  const safeQuestions = Array.isArray(questions) ? questions : [];
 
-  questions.forEach((question, index) => {
+  safeQuestions.forEach((question, index) => {
     const answer = answers[index];
     if (!answer) return;
 
     if (question.type === 'options') {
       const option = question.options.find((item) => item.id === answer);
-      score += option?.risk || 0;
+      score += option?.risk ?? 0;
       return;
     }
 

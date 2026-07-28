@@ -39,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
         userService.resetLoginAttempts(login, typeUser);
         UserAuth userDetails = loadAndGetUser(authentication);
         LoginProcessor processor = processorFactory.getProcessor(typeUser);
-        InfoLoginDTO i = processor.resolveName(userDetails.getId());
+        InfoLoginDTO i = processor.resolveName(userDetails);
         return tokenResponse(processor.generateToken(userDetails, i));
     }
 
@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
 
         UserAuth userDetails = userService.loadUserById(userId);
         LoginProcessor processor = processorFactory.getProcessor(typeUser);
-        InfoLoginDTO d = processor.resolveName(userId);
+        InfoLoginDTO d = processor.resolveName(userDetails);
         TokenPair tokens = processor.generateToken(userDetails, d);
         return tokenResponse(tokens);
     }

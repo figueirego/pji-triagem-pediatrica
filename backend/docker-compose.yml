@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: triagem-postgres
+    environment:
+      POSTGRES_DB: triagem
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - triagem_postgres_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: triagem-api
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/triagem
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?configure APP_JWT_SECRET in .env}
+
+volumes:
+  triagem_postgres_data:

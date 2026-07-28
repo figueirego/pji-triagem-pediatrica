@@ -9,7 +9,7 @@ public interface LoginProcessor {
     /**
      * Resolve o nome do usuário para incluir no token.
      */
-    InfoLoginDTO resolveName(Long userId);
+    InfoLoginDTO resolveName(UserAuth userAuth);
 
     /**
      * Gera um par de tokens (access e refresh) para o usuário.

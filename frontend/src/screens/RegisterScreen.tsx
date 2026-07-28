@@ -15,6 +15,7 @@ function getSubmitErrorMessage(error: unknown) {
 export function RegisterScreen({ onBack }: RegisterScreenProps) {
   const { isSubmitting, register } = useAuth();
   const [name, setName] = useState('');
+  const [document, setDocument] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -22,8 +23,13 @@ export function RegisterScreen({ onBack }: RegisterScreenProps) {
 
   async function handleSubmit() {
     setError(null);
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Preencha nome, email e senha.');
+    const normalizedDocument = document.replace(/\D/g, '');
+    if (!name.trim() || !normalizedDocument || !email.trim() || !password) {
+      setError('Preencha nome, CPF, email e senha.');
+      return;
+    }
+    if (normalizedDocument.length !== 11) {
+      setError('Informe um CPF com 11 dígitos.');
       return;
     }
     if (password.length < 6) {
@@ -36,7 +42,7 @@ export function RegisterScreen({ onBack }: RegisterScreenProps) {
     }
 
     try {
-      await register({ name, email, password });
+      await register({ email, login: normalizedDocument, name, password });
     } catch (submitError) {
       setError(getSubmitErrorMessage(submitError));
     }
@@ -51,6 +57,14 @@ export function RegisterScreen({ onBack }: RegisterScreenProps) {
         <ScreenHeader title="Criar conta" onBack={onBack} />
         <Card style={{ marginHorizontal: spacing.lg }} contentStyle={{ gap: spacing.md }}>
           <TextField label="Nome completo" onChangeText={setName} placeholder="Ex.: Camila Ribeiro" value={name} />
+          <TextField
+            autoCapitalize="none"
+            inputMode="numeric"
+            label="CPF"
+            onChangeText={setDocument}
+            placeholder="Somente números"
+            value={document}
+          />
           <TextField
             autoCapitalize="none"
             autoComplete="email"

@@ -1,0 +1,32 @@
+name: Backend
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  maven:
+    name: Maven Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Verify
+        run: APP_JWT_SECRET="$(openssl rand -base64 64)" ./mvnw -B verify

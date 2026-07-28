@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Card, EmptyState, HistoryRow, ScreenHeader } from '../components';
 import { colors, radii, riskPalette, shadows, spacing, typography } from '../theme';
 import type { ChildProfile, HistoryItem } from '../types/domain';
@@ -13,7 +13,9 @@ interface StatProps {
 interface HistoryScreenProps {
   childrenList: ChildProfile[];
   historyItems?: HistoryItem[];
+  isRefreshing?: boolean;
   onBack: () => void;
+  onRefresh?: () => Promise<void> | void;
 }
 
 interface HistoryFilterTab {
@@ -34,16 +36,31 @@ function Stat({ label, value, tone }: StatProps) {
   );
 }
 
-export function HistoryScreen({ childrenList, historyItems = [], onBack }: HistoryScreenProps) {
+export function HistoryScreen({ childrenList, historyItems = [], isRefreshing = false, onBack, onRefresh }: HistoryScreenProps) {
   const [filter, setFilter] = useState('all');
+  const [localRefreshing, setLocalRefreshing] = useState(false);
   const tabs = useMemo<HistoryFilterTab[]>(
     () => [{ id: 'all', label: 'Todos' }, ...childrenList.map((child) => ({ id: child.name, label: child.name }))],
     [childrenList],
   );
   const filtered = filter === 'all' ? historyItems : historyItems.filter((item) => item.child === filter);
 
+  async function handleRefresh() {
+    if (!onRefresh) return;
+    setLocalRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setLocalRefreshing(false);
+    }
+  }
+
   return (
-    <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.tabContentBottom }} contentInsetAdjustmentBehavior="automatic">
+    <ScrollView
+      contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.tabContentBottom }}
+      contentInsetAdjustmentBehavior="automatic"
+      refreshControl={onRefresh ? <RefreshControl refreshing={isRefreshing || localRefreshing} onRefresh={handleRefresh} /> : undefined}
+    >
       <ScreenHeader title="Histórico" onBack={onBack} />
       <View style={{ gap: spacing.md, paddingHorizontal: spacing.lg }}>
         <View style={{ flexDirection: 'row', gap: spacing.xs }}>
@@ -93,7 +110,7 @@ export function HistoryScreen({ childrenList, historyItems = [], onBack }: Histo
           {filtered.length ? (
             filtered.map((item) => <HistoryRow key={item.id} item={item} />)
           ) : (
-            <EmptyState title="Sem avaliações" message="Nenhuma triagem foi registrada para este filtro." />
+            <EmptyState title="Nenhuma avaliação ainda" message="Faça a primeira!" />
           )}
         </View>
       </View>

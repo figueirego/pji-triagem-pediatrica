@@ -1,0 +1,28 @@
+package com.pji.triagem.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class AssessmentHistoryResponse {
+
+    private Long totalAssessments;
+    private Long lowRiskCount;
+    private Long moderateRiskCount;
+    private Long highRiskCount;
+    private Long selectedChildId;
+
+    @Builder.Default
+    private List<AssessmentHistoryChildResponse> children = new ArrayList<>();
+
+    @Builder.Default
+    private List<AssessmentHistoryItemResponse> assessments = new ArrayList<>();
+}
