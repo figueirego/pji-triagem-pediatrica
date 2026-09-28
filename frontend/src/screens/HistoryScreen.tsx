@@ -15,6 +15,7 @@ interface HistoryScreenProps {
   historyItems?: HistoryItem[];
   isRefreshing?: boolean;
   onBack: () => void;
+  onSelectAssessment?: (item: HistoryItem) => void;
   onRefresh?: () => Promise<void> | void;
 }
 
@@ -36,14 +37,14 @@ function Stat({ label, value, tone }: StatProps) {
   );
 }
 
-export function HistoryScreen({ childrenList, historyItems = [], isRefreshing = false, onBack, onRefresh }: HistoryScreenProps) {
+export function HistoryScreen({ childrenList, historyItems = [], isRefreshing = false, onBack, onRefresh, onSelectAssessment }: HistoryScreenProps) {
   const [filter, setFilter] = useState('all');
   const [localRefreshing, setLocalRefreshing] = useState(false);
   const tabs = useMemo<HistoryFilterTab[]>(
-    () => [{ id: 'all', label: 'Todos' }, ...childrenList.map((child) => ({ id: child.name, label: child.name }))],
+    () => [{ id: 'all', label: 'Todos' }, ...childrenList.map((child) => ({ id: child.id, label: child.name }))],
     [childrenList],
   );
-  const filtered = filter === 'all' ? historyItems : historyItems.filter((item) => item.child === filter);
+  const filtered = filter === 'all' ? historyItems : historyItems.filter((item) => item.childId === filter);
 
   async function handleRefresh() {
     if (!onRefresh) return;
@@ -108,7 +109,7 @@ export function HistoryScreen({ childrenList, historyItems = [], isRefreshing = 
 
         <View style={{ gap: spacing.xs }}>
           {filtered.length ? (
-            filtered.map((item) => <HistoryRow key={item.id} item={item} />)
+            filtered.map((item) => <HistoryRow key={item.id} item={item} onPress={() => onSelectAssessment?.(item)} />)
           ) : (
             <EmptyState title="Nenhuma avaliação ainda" message="Faça a primeira!" />
           )}

@@ -38,10 +38,16 @@ public class ApplicationExceptionHandler extends ResponseEntityExceptionHandler 
         return handleException(ex, HttpStatus.CONFLICT, request, ex.getMessage());
     }
 
+    @ExceptionHandler({ InvalidTokenException.class })
+    public ResponseEntity<Object> handleInvalidTokenException(InvalidTokenException ex, WebRequest request) {
+        return handleException(ex, HttpStatus.UNAUTHORIZED, request, "Token inválido ou expirado");
+    }
+
     @ExceptionHandler({ RuntimeException.class })
     public ResponseEntity<Object> handleRuntimeException(RuntimeException ex, WebRequest request) {
-        log.warn(ex.getMessage());
-        return handleException(ex, HttpStatus.BAD_REQUEST, request, ex.getMessage());
+        log.error("Falha interna ao processar solicitação ({})", ex.getClass().getSimpleName());
+        return handleException(ex, HttpStatus.INTERNAL_SERVER_ERROR, request,
+                "Não foi possível concluir a solicitação. Tente novamente.");
     }
 
     @ExceptionHandler({ ResourceNotFoundException.class })

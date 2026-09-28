@@ -8,6 +8,7 @@ import type { AppScreen, ChildProfile, HistoryItem, RiskTone } from '../types/do
 interface HomeScreenProps {
   childrenList: ChildProfile[];
   historyItems?: HistoryItem[];
+  onSelectAssessment?: (item:HistoryItem)=>void;
   onGo: (screen: AppScreen) => void;
   onSelectChild: (child: ChildProfile) => void;
   selectedChild: ChildProfile | null;
@@ -24,7 +25,7 @@ function getTodayLabel() {
   return new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }).format(new Date());
 }
 
-export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChild, selectedChild, user }: HomeScreenProps) {
+export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChild, selectedChild, user, onSelectAssessment }: HomeScreenProps) {
   const firstName = user?.name?.split(' ')?.[0] || 'Cuidador';
 
   return (
@@ -44,6 +45,7 @@ export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChil
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Notificações"
+          onPress={()=>onGo('notifications')}
           style={[
             {
               alignItems: 'center',
@@ -211,6 +213,7 @@ export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChil
         </Card>
       </View>
 
+      <Card onPress={() => onGo('about')}><Text style={[typography.bodyStrong, { color: colors.text }]}>Sobre o aplicativo</Text></Card>
       <DisclaimerCard />
 
       {historyItems.length ? (
@@ -226,7 +229,7 @@ export function HomeScreen({ childrenList, historyItems = [], onGo, onSelectChil
             }
           />
           {historyItems.slice(0, 2).map((item) => (
-            <HistoryRow item={item} key={item.id} />
+            <HistoryRow item={item} key={item.id} onPress={()=>onSelectAssessment?.(item)} />
           ))}
         </View>
       ) : null}

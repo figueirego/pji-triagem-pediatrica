@@ -17,6 +17,11 @@ public class AssessmentResultResponse {
 
     private Long assessmentId;
     private Long childId;
+    private String reason;
+    private String protocolVersion;
+    private java.time.LocalDateTime createdAt;
+    private String childName;
+    private String childAgeAtAssessment;
     private Classification finalClassification;
     private Integer totalScore;
     private Boolean redFlagDetected;

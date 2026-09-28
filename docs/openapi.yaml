@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: PediTriagem API
-  version: 1.0.0
+  version: 2.0.0
   description: Contrato atual do backend Spring Boot integrado ao app Expo.
 servers:
   - url: http://localhost:8080
@@ -16,6 +16,58 @@ tags:
   - name: Usuários
   - name: Health
 paths:
+  /usuarios:
+    $ref: '#/paths/~1auth~1register~1user'
+  /auth/register:
+    $ref: '#/paths/~1auth~1register~1user'
+  /sintomas:
+    $ref: '#/paths/~1symptoms'
+  /avaliacao:
+    $ref: '#/paths/~1assessments'
+  /avaliacao/{assessmentId}:
+    get:
+      tags: [Avaliações]
+      summary: Recupera resultado persistido da avaliação do responsável autenticado
+      parameters:
+        - $ref: '#/components/parameters/AssessmentId'
+      responses:
+        '200':
+          description: Resultado, motivo, versão e dados da criança no momento da avaliação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResultEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /criancas:
+    get:
+      tags: [Crianças]
+      summary: Lista crianças do responsável autenticado
+      responses:
+        '200':
+          description: Crianças cadastradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildHomeListEnvelope'
+    post:
+      tags: [Crianças]
+      summary: Cadastra criança de 0 a 12 anos para o responsável autenticado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChildRequest'
+      responses:
+        '201':
+          description: Criança cadastrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
   /health:
     get:
       tags: [Health]
@@ -41,7 +93,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StringEnvelope'
+                $ref: '#/components/schemas/AuthEnvelope'
         '400':
           $ref: '#/components/responses/BadRequest'
   /auth/login:
@@ -313,6 +365,18 @@ components:
             data:
               type: string
               example: Usuario criado com sucesso
+    AuthEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ResponseEnvelope'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                usuario:
+                  $ref: '#/components/schemas/UserProfileResponse'
+                token:
+                  $ref: '#/components/schemas/TokenResponse'
     RegisterRequest:
       type: object
       required: [login, password, email, name]
@@ -441,6 +505,12 @@ components:
           format: int64
         name:
           type: string
+        birthDate:
+          type: string
+          format: date
+        weightKg:
+          type: number
+          nullable: true
         age:
           type: string
           example: 4 anos
@@ -593,6 +663,7 @@ components:
           items:
             $ref: '#/components/schemas/CreateAssessmentAnswerRequest'
     CreateAssessmentAnswerRequest:
+      description: Perguntas YESNO configuradas com metadados de idade não são exibidas nem exigidas; o servidor deriva as respostas da data de nascimento cadastrada e ignora os valores legados enviados para elas. As demais perguntas permanecem obrigatórias.
       type: object
       properties:
         questionId:
@@ -620,6 +691,22 @@ components:
         childId:
           type: integer
           format: int64
+        reason:
+          type: string
+          description: Motivo persistido da classificação
+        protocolVersion:
+          type: string
+          example: projeto-2.2-educacional
+          description: Versão das regras educacionais, sem alegação de validação clínica
+        createdAt:
+          type: string
+          format: date-time
+        childName:
+          type: string
+          description: Nome salvo no momento da avaliação
+        childAgeAtAssessment:
+          type: string
+          description: Idade salva no momento da avaliação; registros antigos indicam indisponibilidade
         finalClassification:
           type: string
           enum: [LOW, MOD, HIGH]
@@ -756,6 +843,12 @@ components:
         childId:
           type: integer
           format: int64
+        childAgeAtAssessment:
+          type: string
+        reason:
+          type: string
+        protocolVersion:
+          type: string
         childName:
           type: string
         symptoms:

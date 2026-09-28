@@ -1,3 +1,5 @@
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from './storageKeys';
 import type { AuthUser } from '../types/auth';
@@ -29,20 +31,31 @@ async function setJson<T>(key: string, value: T): Promise<void> {
   }
 }
 
+const secureTokenKey = 'peditriagem.token';
+
 export async function getToken(): Promise<string | null> {
-  return getString(STORAGE_KEYS.token);
+  const token = Platform.OS === 'web'
+    ? globalThis.sessionStorage?.getItem(secureTokenKey) ?? null
+    : await SecureStore.getItemAsync(secureTokenKey);
+  if (token) {
+    await AsyncStorage.removeItem(STORAGE_KEYS.token);
+    return token;
+  }
+  const legacyToken = await AsyncStorage.getItem(STORAGE_KEYS.token);
+  if (legacyToken) await setToken(legacyToken);
+  return legacyToken;
 }
 
 export async function setToken(token: string | null | undefined): Promise<void> {
-  try {
-    if (!token) {
-      await AsyncStorage.removeItem(STORAGE_KEYS.token);
-      return;
-    }
-    await AsyncStorage.setItem(STORAGE_KEYS.token, token);
-  } catch {
-    // Keep API identical to AsyncStorage helper acceptance: no throw on storage miss/failure.
+  if (Platform.OS === 'web') {
+    if (token) globalThis.sessionStorage.setItem(secureTokenKey, token);
+    else globalThis.sessionStorage.removeItem(secureTokenKey);
+  } else if (token) {
+    await SecureStore.setItemAsync(secureTokenKey, token);
+  } else {
+    await SecureStore.deleteItemAsync(secureTokenKey);
   }
+  await AsyncStorage.removeItem(STORAGE_KEYS.token);
 }
 
 export async function getUser(): Promise<AuthUser | null> {
@@ -63,11 +76,8 @@ export async function setUser(user: AuthUser | null | undefined): Promise<void> 
 }
 
 export async function clearAuth(): Promise<void> {
-  try {
-    await AsyncStorage.multiRemove([STORAGE_KEYS.token, STORAGE_KEYS.user]);
-  } catch {
-    // no-op
-  }
+  await setToken(null);
+  await AsyncStorage.multiRemove([STORAGE_KEYS.token, STORAGE_KEYS.user]);
 }
 
 export async function getDisclaimerAcepto(): Promise<boolean | null> {

@@ -1,6 +1,6 @@
-import { View } from 'react-native';
-import { EmptyStateScreen, ScreenHeader } from '../components';
-import { spacing } from '../theme';
+import { ScrollView, Text, View } from 'react-native';
+import { Card, ScreenHeader } from '../components';
+import { colors, typography, spacing } from '../theme';
 import type { IconName } from '../types/domain';
 
 interface PreferenceDetailScreenProps {
@@ -14,7 +14,7 @@ export function PreferenceDetailScreen({ icon, message, onBack, title }: Prefere
   return (
     <View style={{ flex: 1, paddingBottom: spacing.xxl }}>
       <ScreenHeader title={title} onBack={onBack} />
-      <EmptyStateScreen icon={icon} title={title} message={message || 'Em desenvolvimento'} />
+      <ScrollView contentContainerStyle={{padding:spacing.lg}}><Card><Text selectable style={[typography.body,{color:colors.text}]}>{message}</Text></Card></ScrollView>
     </View>
   );
 }

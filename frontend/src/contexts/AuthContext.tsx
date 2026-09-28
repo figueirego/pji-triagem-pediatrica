@@ -66,20 +66,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     async function hydrateSession() {
       setIsLoading(true);
-      const storedToken = await getToken();
-
-      if (!storedToken) {
-        if (mounted) setIsLoading(false);
-        return;
-      }
-
       try {
+        const storedToken = await getToken();
+        if (!storedToken) return;
+
         const currentUser = await meRequest();
         if (!mounted) return;
         setTokenState(storedToken);
         setUserState(currentUser);
       } catch {
-        await clearAuth();
+        try {
+          await clearAuth();
+        } catch {
+          if (mounted) setAuthError('Não foi possível acessar o armazenamento seguro. Tente novamente.');
+        }
         if (!mounted) return;
         setTokenState(null);
         setUserState(null);

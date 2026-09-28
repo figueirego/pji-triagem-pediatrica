@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Card, EmptyState, Icon, Mascot, ProgressBar, ScreenHeader } from '../components';
+import { Card, EmptyState, Icon, Mascot, ProgressBar, PrimaryButton, ScreenHeader } from '../components';
 import { colors, radii, shadows, spacing, typography } from '../theme';
 import type { ChildProfile, Symptom, TriageAnswers, TriageQuestion, YesNoAnswer } from '../types/domain';
 
@@ -19,6 +19,7 @@ const yesNoOptions: { id: YesNoAnswer; label: string; wide?: boolean }[] = [
 ];
 
 export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, selectedSymptom }: QuizScreenProps) {
+  const submitLock = useRef(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<TriageAnswers>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,22 +45,20 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
     setAnswers(nextAnswers);
     setSubmitError(null);
 
-    setTimeout(() => {
-      if (step + 1 < total) {
-        setStep((currentStep) => currentStep + 1);
-        return;
-      }
+  }
 
-      setIsSubmitting(true);
-      Promise.resolve(onFinish(nextAnswers))
-        .catch((error) => {
-          setSubmitError(error instanceof Error ? error.message : 'Não foi possível concluir a triagem.');
-        })
-        .finally(() => setIsSubmitting(false));
-    }, 140);
+  async function advance() {
+    if (!selectedAnswer || submitLock.current) return;
+    if (step + 1 < total) { setStep(step + 1); return; }
+    submitLock.current = true;
+    setIsSubmitting(true);
+    try { await onFinish(answers); }
+    catch (error) { setSubmitError(error instanceof Error ? error.message : 'Não foi possível concluir a triagem.'); }
+    finally { submitLock.current = false; setIsSubmitting(false); }
   }
 
   function goBack() {
+    if (submitLock.current) return;
     if (step > 0) {
       setStep((currentStep) => currentStep - 1);
       return;
@@ -161,6 +160,7 @@ export function QuizScreen({ onBack, onFinish, questions = [], selectedChild, se
           </View>
         )}
 
+        <PrimaryButton disabled={!selectedAnswer || isSubmitting} loading={isSubmitting} onPress={advance}>{step + 1 === total ? 'Concluir avaliação' : 'Próxima pergunta'}</PrimaryButton>
         <Text selectable style={[typography.caption, { color: colors.textSubtle, textAlign: 'center' }]}>
           {isSubmitting ? 'Calculando classificação...' : 'Suas respostas serão usadas para calcular a classificação.'}
         </Text>

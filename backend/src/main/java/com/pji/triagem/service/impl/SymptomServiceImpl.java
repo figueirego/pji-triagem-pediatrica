@@ -68,7 +68,9 @@ public class SymptomServiceImpl extends BaseServiceImpl<Symptom> implements Symp
         List<Symptom> symptoms = symptomRepository.findAllByIdIn(distinctSymptomIds);
         validateRequestedSymptoms(distinctSymptomIds, symptoms);
 
-        List<Question> questions = questionService.findBySymptoms(distinctSymptomIds);
+        List<Question> questions = questionService.findBySymptoms(distinctSymptomIds).stream()
+                .filter(question -> !AgeConditionResolver.isDerived(question))
+                .toList();
         Map<Long, List<QuestionOption>> optionsByQuestionId = buildOptionsByQuestionId(questions);
         Map<Long, List<Question>> questionsBySymptomId = questions.stream()
                 .collect(Collectors.groupingBy(question -> question.getSymptom().getId(), LinkedHashMap::new, Collectors.toList()));

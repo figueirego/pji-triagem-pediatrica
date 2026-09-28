@@ -1,103 +1,40 @@
-# Roteiro de demonstração — PediTriagem
+# Demonstração do PediTriagem
 
-Tempo alvo: 10-15 minutos.
+O fluxo usa a API real e dados fictícios locais. O aplicativo é um projeto educativo de apoio à decisão; os documentos fornecem um exemplo de febre, não a validação clínica de todos os questionários.
 
-## Pré-check antes da banca
+## Preparação
 
-- Backend rodando em `http://localhost:8080` ou IP local da máquina de apresentação.
-- Frontend iniciado com `npm start` dentro de `frontend/`.
-- Expo Go instalado no celular de teste.
-- Celular e notebook na mesma rede Wi-Fi.
-- Se for usar build TestFlight, gerar com `EXPO_PUBLIC_API_URL=http://<IP-LAN>:8080`.
-- Abrir o app uma vez antes da apresentação para validar fonte, splash e login.
+1. Inicie PostgreSQL e a API conforme o README. Aplique as migrações Flyway, incluindo V7.
+2. Inicie Expo com `EXPO_PUBLIC_API_URL=http://localhost:8080 npm start`.
+3. No simulador iOS, abra o projeto no Expo Go. Para um celular físico, configure o IP da máquina como endereço da API e mantenha os dispositivos na mesma rede.
+4. Crie uma conta de demonstração com informações fictícias. A tela de login da API real não presume que as credenciais de mock existem no banco.
+5. Cadastre Maria, 4 anos, peso opcional de 17 kg, e Lucas, 2 meses, peso opcional. Não use dados de pacientes na apresentação.
 
-## Dados de teste
+## Fluxo principal
 
-Usuário demo:
+1. Mostre a tela inicial, a criança selecionada e os acessos a Avaliar, Orientações, Histórico e Sobre.
+2. Toque em Avaliar sintomas e confirme a criança e a idade antes de escolher o sintoma.
+3. Mostre os nove sintomas e a busca: febre, tosse, vômitos, diarreia, dor abdominal, falta de ar, manchas na pele, trauma leve e dor de ouvido.
+4. Selecione Febre para Maria. Responda às perguntas e use os controles de avanço/revisão.
+5. Para observação domiciliar, informe temperatura baixa, ausência de sinais de alerta, febre não persistente e bom estado geral. O resultado deve ser verde, com cuidados e critérios para procurar ajuda.
+6. Repita para Maria com temperatura acima de 39°C, sem sinais de emergência e com bom estado geral. O resultado deve orientar avaliação nas próximas horas, em até 24 horas.
+7. Repita indicando dificuldade respiratória ou prostração. O resultado deve indicar atendimento imediato. Mostre a ação de emergência sem realizar uma ligação real durante a gravação.
+8. Selecione Lucas, de 2 meses, e avalie febre. A idade cadastrada deve prevalecer mesmo diante de resposta contraditória ao questionário: atendimento imediato.
+9. Demonstre “Não sei”: informação incerta não gera tranquilização automática em verde.
+10. Abra o histórico, filtre pela criança e consulte um resultado anterior. Data, nome e idade na avaliação são preservados mesmo após alterações no cadastro.
+11. Abra Orientações, navegue pelos conteúdos de sintomas e confira as fontes. Mostre Sobre e Privacidade.
 
-- Email: `camila.demo@peditriagem.app`
-- Senha: `peditriagem123`
+## Verificação antes da gravação
 
-Crianças pré-cadastradas no mock:
+- API `/health` responde e conta consegue entrar.
+- Cadastro aceita peso vazio, recém-nascido em meses e até 12 anos; rejeita 13 anos.
+- Navegação passa pela confirmação de idade antes dos sintomas.
+- Três resultados e histórico são persistidos pela API.
+- Orientações de um resultado não são confundidas com conteúdo genérico de outro sintoma.
+- Falhas de conexão aparecem com opção de tentar novamente; não são substituídas por resultados fictícios.
 
-- Maria, 4 anos, 17 kg
-- Lucas, 8 meses, 8.2 kg
+## Limites da demonstração
 
-## Roteiro principal
+Os benefícios de reduzir ansiedade e procura desnecessária por emergência são objetivos, não resultados clínicos comprovados. Os escores internos não são probabilidades de doença. O aplicativo não fornece diagnóstico nem dose de medicamento. Hospedagem em nuvem e distribuição em lojas são etapas separadas da execução local.
 
-1. Abertura e contexto (1 min)
-   - Mostrar splash/ícone do app.
-   - Explicar que o PediTriagem apoia decisão inicial e não substitui consulta médica.
-
-2. Login e persistência de sessão (1-2 min)
-   - Entrar com o usuário demo.
-   - Mostrar que o app cai direto nas abas autenticadas.
-   - Comentar que o `AuthContext` valida sessão no boot e limpa token inválido.
-
-3. Tela inicial e criança selecionada (1 min)
-   - Mostrar Maria selecionada.
-   - Alternar para Lucas.
-   - Mostrar botão de cadastro de criança, sem gastar tempo preenchendo se não for necessário.
-
-4. Cenário verde: baixo risco (2 min)
-   - Abrir `Avaliar sintomas`.
-   - Escolher `Febre`.
-   - Respostas sugeridas:
-     - Abaixo de 37,8°C
-     - Menos de 24 horas
-     - Não está prostrada
-     - Não há dificuldade para respirar
-     - Está bebendo líquidos normalmente
-     - Não há manchas que não somem ao apertar
-   - Resultado esperado: `Baixo risco`.
-   - Mostrar orientações de cuidado em casa.
-
-5. Cenário amarelo: risco moderado (2 min)
-   - Repetir triagem para Maria ou Lucas.
-   - Respostas sugeridas:
-     - Entre 38,5 e 39,5°C
-     - 1 a 3 dias
-     - Não está prostrada
-     - Não há dificuldade para respirar
-     - Não está bebendo líquidos normalmente
-     - Não há manchas que não somem ao apertar
-   - Resultado esperado: `Risco moderado`.
-   - Destacar orientação de procurar avaliação em até 24h.
-
-6. Cenário vermelho com red flag (2 min)
-   - Repetir triagem para `Febre`.
-   - Respostas sugeridas:
-     - Acima de 39,5°C
-     - Mais de 3 dias
-     - Sim, está prostrada
-     - Sim, há dificuldade para respirar
-     - Não está bebendo líquidos normalmente
-     - Sim, manchas não somem ao apertar
-   - Resultado esperado: `Alto risco`.
-   - Destacar CTA de emergência e ligação para SAMU 192.
-
-7. Histórico, orientações e perfil (2 min)
-   - Abrir aba `Histórico` e filtrar por criança.
-   - Abrir aba `Orientações`.
-   - Abrir `Perfil`, mostrar crianças, `Sobre o aplicativo` e `Storybook visual`.
-
-8. Encerramento técnico (1-2 min)
-   - Mostrar organização em `src/theme`, `src/components`, `src/services`, `src/mocks`, `src/navigation` e `src/screens`.
-   - Mostrar `docs/openapi.yaml` como contrato do MVP.
-   - Comentar que mocks estão atrás de services e podem ser trocados pela API real.
-
-## Plano B
-
-- Gravar um vídeo curto do fluxo principal antes da apresentação.
-- Salvar capturas das telas de login, home, baixo risco, moderado, alto risco, histórico e perfil.
-- Ter o backend validado via Postman/cURL para `/health`.
-- Se a rede local falhar, demonstrar o frontend com mock (`EXPO_PUBLIC_USE_MOCK_AUTH=true`) e explicar a troca por API via `EXPO_PUBLIC_API_URL`.
-- Se TestFlight falhar, usar Expo Go no celular ou web com `npm run web`.
-
-## Checklist de ensaio
-
-- [ ] Um integrante executou o roteiro completo em 10-15 minutos.
-- [ ] Os três cenários de risco foram conferidos.
-- [ ] O vídeo de backup foi gravado.
-- [ ] O IP local do backend foi confirmado na rede da apresentação.
-- [ ] O QR do Expo Go ou link TestFlight está acessível.
+A matriz de requisitos e as fontes estão em [documentos-triagem.md](requirements/documentos-triagem.md).

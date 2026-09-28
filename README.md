@@ -61,7 +61,7 @@ Variáveis úteis:
 
 ```bash
 EXPO_PUBLIC_API_URL=http://<IP-DA-SUA-MAQUINA>:8080
-EXPO_PUBLIC_USE_MOCK_AUTH=true # opcional, apenas para demo sem backend
+EXPO_PUBLIC_USE_MOCK_AUTH=true # simula somente autenticação; os dados de triagem ainda exigem API
 ```
 
 Use o IP local da máquina quando o app estiver em um celular físico na mesma rede Wi-Fi.
@@ -144,3 +144,9 @@ Para capturar rapidamente, rode `npm start`, abra o app no Expo Go ou emulador, 
 - PRs exigem **1 aprovação** antes do merge.
 
 Veja [CONTRIBUTING.md](./CONTRIBUTING.md) para detalhes do fluxo, padrões de commit e de PR.
+
+## Adequação aos documentos de referência
+
+A correspondência com os dois PDFs e a apresentação está em [docs/requirements/documentos-triagem.md](docs/requirements/documentos-triagem.md). Java/Spring Boot foi mantido por decisão do solicitante. O motor de febre, histórico com dados da época da avaliação, nove sintomas e conteúdo educativo devem ser verificados pelo roteiro de [demonstração](docs/DEMO.md).
+
+A API limita solicitações por endereço e aceita origens web explicitamente configuradas em `APP_CORS_ALLOWED_ORIGINS`. Ajuste `APP_RATE_LIMIT_AUTH_PER_MINUTE` e `APP_RATE_LIMIT_REQUESTS_PER_MINUTE` conforme o ambiente. Ao escalar para múltiplas instâncias, aplique também limites compartilhados no proxy de entrada; o limitador local não usa cabeçalhos de IP enviados pelo cliente. O endpoint de saúde é público; detalhes operacionais não são.

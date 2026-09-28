@@ -1,6 +1,7 @@
 import { api, unwrapData } from './api';
-import { orientationCards, riskContent } from '../mocks/appMock';
-import { parseAge, parseAgeAmount } from '../utils/age';
+import { orientationCards } from '../mocks/appMock';
+import { riskContent } from '../utils/riskContent';
+import { parseAge, parseAgeAmount, validateBirthDate } from '../utils/age';
 import type {
   AgeUnit,
   ChildProfile,
@@ -25,6 +26,8 @@ interface ChildHomeResponse {
   id: number;
   name: string;
   age?: string;
+  birthDate?: string;
+  weightKg?: number | string;
   ageInMonths?: number;
   avatarEmoji?: string;
 }
@@ -72,6 +75,11 @@ interface QuestionnaireResponse {
 }
 
 interface AssessmentResultResponse {
+  reason?: string;
+  protocolVersion?: string;
+  createdAt?: string;
+  childName?: string;
+  childAgeAtAssessment?: string;
   assessmentId: number;
   childId: number;
   finalClassification: BackendClassification;
@@ -94,6 +102,9 @@ interface OrientationResponse {
 }
 
 interface AssessmentHistoryItemResponse {
+  childAgeAtAssessment?: string;
+  reason?: string;
+  protocolVersion?: string;
   id: number;
   childId?: number;
   childName: string;
@@ -127,7 +138,8 @@ function initials(name: string): string {
 function mapClassification(classification?: BackendClassification): RiskLevel {
   if (classification === 'HIGH') return 'high';
   if (classification === 'MOD') return 'mod';
-  return 'low';
+  if (classification === 'LOW') return 'low';
+  throw new Error('Classificação indisponível. Tente carregar a avaliação novamente.');
 }
 
 function mapSymptomTone(symptom: SymptomResponse): RiskTone {
@@ -167,6 +179,7 @@ function mapChild(child: ChildHomeResponse | ChildResponse): ChildProfile {
   const weight = 'weightKg' in child && child.weightKg ? `${String(child.weightKg).replace('.', ',')} kg` : 'Peso não informado';
   return {
     ...age,
+    birthDate: child.birthDate,
     avatarEmoji: child.avatarEmoji,
     backendId: child.id,
     id: String(child.id),
@@ -237,7 +250,7 @@ function parseWeightKg(weight: string): number | undefined {
 function toChildRequest(child: ChildProfile) {
   return {
     avatarEmoji: child.avatarEmoji || '🌸',
-    birthDate: ageToBirthDate(child.ageValue, child.ageUnit),
+    birthDate: child.birthDate ? validateBirthDate(child.birthDate) : ageToBirthDate(child.ageValue, child.ageUnit),
     cpf: '',
     name: child.name,
     weightKg: parseWeightKg(child.weight),
@@ -263,7 +276,11 @@ function formatHistoryDate(value?: string): string {
 
 function mapHistoryItem(item: AssessmentHistoryItemResponse): HistoryItem {
   return {
+    childId: item.childId == null ? undefined : String(item.childId),
     child: item.childName,
+    childAgeAtAssessment: item.childAgeAtAssessment,
+    reason: item.reason,
+    protocolVersion: item.protocolVersion,
     date: formatHistoryDate(item.createdAt),
     id: String(item.id),
     risk: mapClassification(item.classification),
@@ -348,9 +365,11 @@ export async function submitAssessment(
   const result = unwrapData<AssessmentResultResponse>(response.data);
 
   return {
-    answeredAt: new Date().toISOString(),
+    reason: result.reason,
+    protocolVersion: result.protocolVersion,
+    answeredAt: result.createdAt || new Date().toISOString(),
     assessmentId: result.assessmentId,
-    child,
+    child: { ...child, name: result.childName || child.name, age: result.childAgeAtAssessment || child.age },
     hasRedFlag: Boolean(result.redFlagDetected),
     risk: mapClassification(result.finalClassification),
     score: result.totalScore || 0,
@@ -425,5 +444,19 @@ export async function getPediatricDemoData(userId?: string | number | null): Pro
     questions: [],
     risks,
     symptoms: symptomList,
+  };
+}
+
+export async function getAssessmentResult(item: HistoryItem, children: ChildProfile[], symptoms: Symptom[]): Promise<TriageResult> {
+  const response = await api.get(`/assessments/${toNumericId(item.id, 'Avaliação')}`);
+  const saved = unwrapData<AssessmentResultResponse>(response.data);
+  const currentChild = children.find(child => child.id === String(saved.childId));
+  return {
+    assessmentId: saved.assessmentId, answeredAt: saved.createdAt,
+    reason: saved.reason, protocolVersion: saved.protocolVersion,
+    risk: mapClassification(saved.finalClassification), score: saved.totalScore || 0,
+    hasRedFlag: Boolean(saved.redFlagDetected),
+    child: { ...(currentChild || {id:String(saved.childId),initials:'',tint:'primary',weight:'Peso não informado'}), name:saved.childName || item.child, age:saved.childAgeAtAssessment || 'Idade não registrada' },
+    symptom: symptoms.find(symptom => symptom.name === item.symptom) || {id:'saved',name:item.symptom,desc:'Sintoma registrado',icon:'activity',tone:'neutral'},
   };
 }

@@ -34,10 +34,10 @@ public class SecurityFilter extends OncePerRequestFilter {
         try {
             Authentication authentication = jwtAuthService.getAuthentication(token);
 
-            if (authentication != null) {
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (authentication == null) {
+                throw new IllegalArgumentException("Invalid authentication");
             }
-            filterChain.doFilter(request, response);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (BlockedUserException blockedUserException) {
             SecurityContextHolder.clearContext();
@@ -55,5 +55,6 @@ public class SecurityFilter extends OncePerRequestFilter {
             response.getWriter().flush();
             return;
         }
+        filterChain.doFilter(request, response);
     }
 }
