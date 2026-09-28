@@ -4,6 +4,7 @@ import com.pji.triagem.base.filter.SecurityFilter;
 import com.pji.triagem.service.impl.auth.CustomAuthProvider;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
@@ -48,8 +49,9 @@ public class SecurityConfig {
                                 .requestMatchers("/auth/login").permitAll()  // Permitir rotas de autenticação sem segurança
                                 .requestMatchers("/auth/refresh").permitAll()
                                 .requestMatchers("/health").permitAll()
-                                .requestMatchers("/actuator/**").permitAll() // Liberar actuator
-                                .requestMatchers("/admin/**").permitAll() // Liberar Spring Boot Admin
+                                .requestMatchers("/actuator/health").permitAll()
+                                .requestMatchers("/actuator/**", "/admin/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
                                 .requestMatchers("/auth/teste").hasRole("USER") // Exigir autenticação para todas as outras rotas
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html","/swagger-resources/**").permitAll()
                                 .requestMatchers("/api-docs/**").permitAll()

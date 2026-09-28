@@ -19,6 +19,9 @@ public class AssessmentHistoryItemResponse {
     private Long id;
     private Long childId;
     private String childName;
+    private String childAgeAtAssessment;
+    private String reason;
+    private String protocolVersion;
 
     @Builder.Default
     private List<String> symptoms = new ArrayList<>();

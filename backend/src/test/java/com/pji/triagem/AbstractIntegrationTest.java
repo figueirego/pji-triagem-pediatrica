@@ -33,6 +33,8 @@ abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("app.rate-limit.auth-per-minute", () -> "1000");
+        registry.add("app.rate-limit.requests-per-minute", () -> "1000");
         registry.add("app.jwt.secret", () -> "integration-test-secret-which-is-long-enough-for-jjwt-validation");
     }
 

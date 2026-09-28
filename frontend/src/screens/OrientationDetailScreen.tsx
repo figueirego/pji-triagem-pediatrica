@@ -77,6 +77,8 @@ export function OrientationDetailScreen({ item, onBack }: OrientationDetailScree
           ))}
         </View>
 
+        <Text style={[typography.caption, {color:colors.textMuted}]}>Conteúdo educativo do projeto. Não é diagnóstico, prescrição ou protocolo clinicamente validado. Não atrase atendimento para usar o aplicativo.</Text>
+        {item.sourceUrl ? <GhostButton onPress={()=>{void Linking.openURL(item.sourceUrl!);}}>Consultar referência de saúde (NHS)</GhostButton>:null}
         {item.tone === 'high' ? (
           <GhostButton
             onPress={() => {

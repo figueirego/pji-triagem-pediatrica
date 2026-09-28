@@ -2,7 +2,6 @@ import type {
   ChildProfile,
   HistoryItem,
   OrientationCardItem,
-  RiskContentMap,
   Symptom,
   TriageQuestion,
 } from '../types/domain';
@@ -156,32 +155,7 @@ export const feverQuiz: TriageQuestion[] = [
   },
 ];
 
-export const riskContent: RiskContentMap = {
-  low: {
-    title: 'Observar em casa',
-    message: 'No momento, os sinais informados parecem leves. Acompanhe a evolução e siga as orientações.',
-    cta: 'Ver cuidados em casa',
-    icon: 'check',
-    mood: 'calm',
-    actions: ['Hidratação', 'Repouso', 'Reavaliar em 6h'],
-  },
-  mod: {
-    title: 'Procure avaliação médica em até 24h',
-    message: 'A criança apresenta sinais que precisam de avaliação profissional nas próximas horas.',
-    cta: 'Ver cuidados até a consulta',
-    icon: 'warn',
-    mood: 'watch',
-    actions: ['Agendar consulta', 'Monitorar febre', 'Hidratação reforçada'],
-  },
-  high: {
-    title: 'Procure emergência imediatamente',
-    message: 'Os sinais informados indicam necessidade de atendimento médico urgente.',
-    cta: 'Ver orientações imediatas',
-    icon: 'alert',
-    mood: 'alert',
-    actions: ['Não oferecer comida ou líquido', 'Manter a criança confortável', 'Levar à UPA mais próxima'],
-  },
-};
+export { riskContent } from '../utils/riskContent';
 
 export const historyItems: HistoryItem[] = [
   { id: 'h1', child: 'Maria', symptom: 'Febre', date: '12 mai 2026', risk: 'low' },

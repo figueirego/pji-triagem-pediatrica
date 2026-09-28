@@ -44,6 +44,7 @@ export type IconName =
 export type AppTab = 'home' | 'evaluate' | 'orientations' | 'history' | 'profile';
 export type AppScreen =
   | 'home'
+  | 'age-confirm'
   | 'symptoms'
   | 'quiz'
   | 'result'
@@ -62,6 +63,7 @@ export interface ChildProfile {
   id: string;
   backendId?: number;
   name: string;
+  birthDate?: string;
   ageValue?: string;
   ageUnit?: AgeUnit;
   age: string;
@@ -111,6 +113,8 @@ export type TriageQuestion = OptionsQuestion | YesNoQuestion;
 export type TriageAnswers = Record<number, string>;
 
 export interface TriageResult {
+  reason?: string;
+  protocolVersion?: string;
   assessmentId?: number;
   risk: RiskLevel;
   score: number;
@@ -132,7 +136,11 @@ export interface RiskContent {
 export type RiskContentMap = Record<RiskLevel, RiskContent>;
 
 export interface HistoryItem {
+  childAgeAtAssessment?: string;
+  reason?: string;
+  protocolVersion?: string;
   id: string;
+  childId?: string;
   child: string;
   symptom: string;
   date: string;
@@ -142,6 +150,8 @@ export interface HistoryItem {
 export interface OrientationCardItem {
   id: string;
   title: string;
+  details?: string[];
+  sourceUrl?: string;
   subtitle: string;
   icon: IconName;
   tone: RiskTone;

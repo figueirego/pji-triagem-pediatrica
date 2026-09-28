@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { AgeConfirmScreen } from '../screens/AgeConfirmScreen';
+import { Alert, View } from 'react-native';
 import { AppTabBar, ErrorState, LoadingState } from '../components';
 import { AboutScreen } from '../screens/AboutScreen';
 import { ChildFormScreen } from '../screens/ChildFormScreen';
@@ -19,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   createChild,
   deleteChild,
+  getAssessmentResult,
   getOrientationCards,
   getQuizQuestions,
   submitAssessment,
@@ -39,14 +41,14 @@ import type {
 
 const tabToScreen: Record<AppTab, AppScreen> = {
   home: 'home',
-  evaluate: 'symptoms',
+  evaluate: 'age-confirm',
   orientations: 'orientations',
   history: 'history',
   profile: 'profile',
 };
 
 function tabForScreen(screen: AppScreen): AppTab {
-  if (['symptoms', 'quiz', 'result'].includes(screen)) return 'evaluate';
+  if (['age-confirm', 'symptoms', 'quiz', 'result'].includes(screen)) return 'evaluate';
   if (screen === 'orientations' || screen === 'orientation-detail') return 'orientations';
   if (screen === 'history') return 'history';
   if (['profile', 'about', 'child-add', 'child-edit', 'dev', 'notifications', 'privacy'].includes(screen)) return 'profile';
@@ -76,7 +78,7 @@ export function MainTabs() {
   useEffect(() => {
     setChildrenList(data.children);
     setSelectedChild((current) => {
-      if (current && data.children.some((child) => child.id === current.id)) return current;
+      if (current) { const refreshed = data.children.find((child) => child.id === current.id); if (refreshed) return refreshed; }
       return data.children[0] || null;
     });
   }, [data.children]);
@@ -96,11 +98,12 @@ export function MainTabs() {
   }, [data.orientations]);
 
   function go(nextScreen: AppScreen) {
+    if (nextScreen === 'about') setReturnScreen(screen);
     if (nextScreen === 'child-add') {
       setEditingChild(null);
       setReturnScreen(screen);
     }
-    setScreen(nextScreen);
+    setScreen(nextScreen === 'symptoms' ? 'age-confirm' : nextScreen);
   }
 
   function changeTab(tab: AppTab) {
@@ -127,6 +130,7 @@ export function MainTabs() {
 
   function handleEditChild(child: ChildProfile) {
     setEditingChild(child);
+    setReturnScreen(screen);
     setScreen('child-edit');
   }
 
@@ -136,7 +140,7 @@ export function MainTabs() {
     const savedChild = await createChild(user.id, child);
     setChildrenList((current) => [...current.filter((item) => item.id !== savedChild.id), savedChild]);
     setSelectedChild(savedChild);
-    setScreen('profile');
+    setScreen(returnScreen === 'age-confirm' ? 'age-confirm' : 'profile');
   }
 
   async function handleUpdateChild(child: ChildProfile) {
@@ -146,7 +150,7 @@ export function MainTabs() {
     setChildrenList((current) => current.map((item) => (item.id === child.id ? savedChild : item)));
     setSelectedChild((current) => (current?.id === child.id ? savedChild : current));
     setEditingChild(null);
-    setScreen('profile');
+    setScreen(returnScreen === 'age-confirm' ? 'age-confirm' : 'profile');
   }
 
   async function handleDeleteChild(child: ChildProfile) {
@@ -157,7 +161,7 @@ export function MainTabs() {
     setChildrenList(nextChildren);
     setSelectedChild((current) => (current?.id === child.id ? nextChildren[0] || null : current));
     setEditingChild(null);
-    setScreen('profile');
+    setScreen(returnScreen === 'age-confirm' ? 'age-confirm' : 'profile');
   }
 
   async function handleFinishQuiz(answers: TriageAnswers) {
@@ -165,7 +169,11 @@ export function MainTabs() {
     setResult(nextResult);
     setHistoryItems((current) => [
       {
-        child: selectedChild?.name || 'Criança',
+        childId: selectedChild?.id,
+        child: nextResult.child?.name || 'Criança',
+        childAgeAtAssessment: nextResult.child?.age,
+        reason: nextResult.reason,
+        protocolVersion: nextResult.protocolVersion,
         date: 'Agora',
         id: String(nextResult.assessmentId || Date.now()),
         risk: nextResult.risk,
@@ -176,9 +184,24 @@ export function MainTabs() {
     try {
       setOrientationCards(await getOrientationCards(nextResult.assessmentId));
     } catch {
-      setOrientationCards(data.orientations);
+      setOrientationCards([]);
+      Alert.alert('Orientações indisponíveis', 'O resultado foi salvo. Consulte-o no histórico para tentar carregar novamente as orientações.');
     }
     setScreen('result');
+  }
+
+  async function handleOpenAssessment(item: HistoryItem) {
+    try {
+      const saved = await getAssessmentResult(item, childrenList, data.symptoms);
+      setResult(saved);
+      setOrientationCards([]);
+      setScreen('result');
+      try {
+        setOrientationCards(await getOrientationCards(saved.assessmentId));
+      } catch {
+        Alert.alert('Orientações indisponíveis', 'O resultado está disponível. Abra novamente a avaliação no histórico para tentar carregar as orientações.');
+      }
+    } catch (error) { Alert.alert('Avaliação indisponível', getApiErrorMessage(error, 'Não foi possível carregar. Tente novamente.')); }
   }
 
   function renderScreen() {
@@ -212,7 +235,7 @@ export function MainTabs() {
           initialChild={editingChild}
           onBack={() => {
             setEditingChild(null);
-            setScreen('profile');
+            setScreen(returnScreen);
           }}
           onDelete={handleDeleteChild}
           onSave={handleUpdateChild}
@@ -220,6 +243,9 @@ export function MainTabs() {
       );
     }
 
+    if (screen === 'age-confirm') {
+      return <AgeConfirmScreen childrenList={childrenList} selectedChild={selectedChild} onSelect={setSelectedChild} onBack={()=>setScreen('home')} onAdd={()=>go('child-add')} onEdit={handleEditChild} onContinue={()=>{ if(selectedChild) setScreen('symptoms'); }} />;
+    }
     if (screen === 'symptoms') {
       return (
         <SymptomsScreen
@@ -265,7 +291,7 @@ export function MainTabs() {
     }
 
     if (screen === 'result') {
-      return <ResultScreen onBackHome={() => setScreen('home')} onGoOrientations={() => setScreen('orientations')} result={result} risks={data.risks} />;
+      return <ResultScreen onBackHome={() => setScreen('home')} onGoOrientations={() => setScreen('orientations')} result={result} risks={data.risks} orientations={orientationCards} />;
     }
 
     if (screen === 'orientations') {
@@ -295,7 +321,7 @@ export function MainTabs() {
     }
 
     if (screen === 'history') {
-      return <HistoryScreen childrenList={childrenList} historyItems={historyItems} onBack={() => setScreen('home')} onRefresh={reload} />;
+      return <HistoryScreen childrenList={childrenList} historyItems={historyItems} onSelectAssessment={handleOpenAssessment} onBack={() => setScreen('home')} onRefresh={reload} />;
     }
 
     if (screen === 'profile') {
@@ -303,14 +329,14 @@ export function MainTabs() {
     }
 
     if (screen === 'about') {
-      return <AboutScreen onBack={() => setScreen('profile')} />;
+      return <AboutScreen onBack={() => setScreen(returnScreen)} />;
     }
 
     if (screen === 'notifications') {
       return (
         <PreferenceDetailScreen
           icon="bell"
-          message="Em desenvolvimento"
+          message="Não há notificações automáticas neste protótipo. Em caso de sinais de alerta ou piora, procure atendimento sem aguardar um aviso do aplicativo."
           onBack={() => setScreen('profile')}
           title="Notificações"
         />
@@ -321,7 +347,7 @@ export function MainTabs() {
       return (
         <PreferenceDetailScreen
           icon="shield"
-          message="Em desenvolvimento"
+          message="No aplicativo nativo, o token de sessão fica no armazenamento seguro do sistema. Na web, fica na sessão da aba e continua acessível a scripts da página. O cadastro armazena nome, e-mail e identificação do responsável; os perfis guardam nome, nascimento e peso opcional da criança. As respostas e resultados ficam associados à sua conta no servidor para consultar o histórico. Use dados fictícios na demonstração acadêmica. O botão Compartilhar envia o resumo, inclusive nome e sintomas, somente ao destino escolhido por você. Sair encerra a sessão neste dispositivo, mas não apaga o histórico do servidor. A exclusão de uma criança remove seu perfil e avaliações vinculadas. Este protótipo não oferece ainda exportação ou exclusão completa da conta; esses recursos e uma política de retenção precisam ser definidos antes de uso público."
           onBack={() => setScreen('profile')}
           title="Privacidade e dados"
         />
@@ -334,6 +360,7 @@ export function MainTabs() {
 
     return (
       <HomeScreen
+        onSelectAssessment={handleOpenAssessment}
         childrenList={childrenList}
         historyItems={historyItems}
         onGo={go}

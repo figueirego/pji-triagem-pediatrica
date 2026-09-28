@@ -44,6 +44,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -90,7 +92,13 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         validateCreateRequest(request);
 
         Child child = childService.findAccessibleEntity(request.getChildId());
+        LocalDate assessedOn = LocalDate.now();
+        PediatricTriageRules.validateAge(child.getBirthDate(), assessedOn);
         Assessment assessment = new Assessment();
+        assessment.setProtocolVersion(PediatricTriageRules.VERSION);
+        assessment.setChildName(child.getName());
+        Period age = Period.between(child.getBirthDate(), assessedOn);
+        assessment.setChildAgeAtAssessment(age.getYears() + " anos, " + age.getMonths() + " meses e " + age.getDays() + " dias");
         assessment.setChild(child);
 
         List<Classification> classifications = new ArrayList<>();
@@ -100,14 +108,14 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         boolean assessmentRedFlag = false;
 
         for (CreateAssessmentSymptomRequest symptomRequest : request.getSymptoms()) {
-            if (symptomRequest.getSymptomId() == null) {
+            if (symptomRequest == null || symptomRequest.getSymptomId() == null) {
                 throw new ValidationException("Sintoma é obrigatório");
             }
             if (!symptomIds.add(symptomRequest.getSymptomId())) {
                 throw new ValidationException("Sintoma repetido na avaliação");
             }
 
-            CalculatedSymptom calculated = calculateSymptom(symptomRequest);
+            CalculatedSymptom calculated = calculateSymptom(symptomRequest, child.getBirthDate(), assessedOn);
             totalScore += calculated.score();
             assessmentRedFlag = assessmentRedFlag || calculated.redFlagDetected();
             classifications.add(calculated.classification());
@@ -126,6 +134,9 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         assessment.setTotalScore(totalScore);
         assessment.setRedFlagDetected(assessmentRedFlag);
         assessment.setFinalClassification(calculationService.classifyFinal(classifications));
+        assessment.setReason(summarySymptoms.stream()
+                .filter(item -> assessment.getFinalClassification().name().equals(item.get("classification")))
+                .map(item -> String.valueOf(item.get("reason"))).distinct().collect(Collectors.joining(" ")));
         assessment.setResponses(toJson(summary(totalScore, assessmentRedFlag, assessment.getFinalClassification(), summarySymptoms)));
 
         Assessment saved = save(assessment);
@@ -200,7 +211,7 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         return AssessmentStatsResponse.from(getHistory(userId, childId));
     }
 
-    private CalculatedSymptom calculateSymptom(CreateAssessmentSymptomRequest symptomRequest) {
+    private CalculatedSymptom calculateSymptom(CreateAssessmentSymptomRequest symptomRequest, LocalDate birthDate, LocalDate assessedOn) {
         if (symptomRequest.getAnswers() == null || symptomRequest.getAnswers().isEmpty()) {
             throw new ValidationException("Sintoma sem respostas");
         }
@@ -213,13 +224,19 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
 
         Map<Long, Question> questionsById = questions.stream()
                 .collect(Collectors.toMap(Question::getId, Function.identity()));
-        validateRequiredQuestions(questionsById.keySet(), symptomRequest.getAnswers());
+        Set<Long> requiredIds = questions.stream()
+                .filter(question -> !AgeConditionResolver.isDerived(question))
+                .map(Question::getId).collect(Collectors.toSet());
+        validateRequiredQuestions(requiredIds, questionsById.keySet(), symptomRequest.getAnswers());
+        List<CreateAssessmentAnswerRequest> normalizedAnswers = answersWithRegisteredAge(
+                questions, symptomRequest.getAnswers(), birthDate, assessedOn);
 
         int score = 0;
         boolean redFlagDetected = false;
         List<Map<String, Object>> answerResponses = new ArrayList<>();
+        Map<String, String> domainAnswers = new LinkedHashMap<>();
 
-        for (CreateAssessmentAnswerRequest answerRequest : symptomRequest.getAnswers()) {
+        for (CreateAssessmentAnswerRequest answerRequest : normalizedAnswers) {
             Question question = questionsById.get(answerRequest.getQuestionId());
             if (question == null) {
                 throw new ValidationException("Pergunta não pertence ao sintoma informado");
@@ -228,10 +245,18 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
             CalculatedAnswer calculatedAnswer = calculateAnswer(question, answerRequest);
             score += calculatedAnswer.score();
             redFlagDetected = redFlagDetected || calculatedAnswer.redFlagDetected();
+            if (AgeConditionResolver.isDerived(question)) {
+                calculatedAnswer.response().put("source", "CHILD_BIRTH_DATE");
+            }
             answerResponses.add(calculatedAnswer.response());
+            Object value = calculatedAnswer.response().get(question.getType() == QuestionType.OPTIONS ? "optionCode" : "answer");
+            domainAnswers.put(question.getCode(), String.valueOf(value));
         }
 
-        Classification classification = calculationService.classifySymptom(score, redFlagDetected);
+        PediatricTriageRules.Decision decision = PediatricTriageRules.evaluate(
+                symptom.getCode(), birthDate, assessedOn, domainAnswers, score, redFlagDetected);
+        Classification classification = decision.classification();
+        redFlagDetected = redFlagDetected || (classification == Classification.HIGH && "FEBRE".equals(symptom.getCode()));
 
         Map<String, Object> responses = new LinkedHashMap<>();
         responses.put("symptomId", symptom.getId());
@@ -241,10 +266,26 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("symptomId", symptom.getId());
         summary.put("classification", classification.name());
+        summary.put("reason", decision.reason());
         summary.put("score", score);
         summary.put("redFlagDetected", redFlagDetected);
 
         return new CalculatedSymptom(symptom, score, redFlagDetected, classification, responses, summary);
+    }
+
+    private List<CreateAssessmentAnswerRequest> answersWithRegisteredAge(
+            List<Question> questions, List<CreateAssessmentAnswerRequest> submitted, LocalDate birthDate, LocalDate assessedOn) {
+        Map<Long, CreateAssessmentAnswerRequest> submittedById = submitted.stream()
+                .collect(Collectors.toMap(CreateAssessmentAnswerRequest::getQuestionId, Function.identity()));
+        return questions.stream().map(question -> {
+            if (!AgeConditionResolver.isDerived(question)) {
+                return submittedById.get(question.getId());
+            }
+            CreateAssessmentAnswerRequest derived = new CreateAssessmentAnswerRequest();
+            derived.setQuestionId(question.getId());
+            derived.setAnswer(AgeConditionResolver.resolve(question, birthDate, assessedOn));
+            return derived;
+        }).toList();
     }
 
     private CalculatedAnswer calculateAnswer(Question question, CreateAssessmentAnswerRequest answerRequest) {
@@ -337,11 +378,11 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
         }
     }
 
-    private void validateRequiredQuestions(Collection<Long> requiredQuestionIds, List<CreateAssessmentAnswerRequest> answers) {
+    private void validateRequiredQuestions(Collection<Long> requiredQuestionIds, Collection<Long> allowedQuestionIds, List<CreateAssessmentAnswerRequest> answers) {
         Set<Long> answeredQuestionIds = new HashSet<>();
 
         for (CreateAssessmentAnswerRequest answer : answers) {
-            if (answer.getQuestionId() == null) {
+            if (answer == null || answer.getQuestionId() == null) {
                 throw new ValidationException("Pergunta é obrigatória");
             }
             if (!answeredQuestionIds.add(answer.getQuestionId())) {
@@ -349,7 +390,7 @@ public class AssessmentServiceImpl extends BaseServiceImpl<Assessment> implement
             }
         }
 
-        if (!answeredQuestionIds.containsAll(requiredQuestionIds) || answeredQuestionIds.size() != requiredQuestionIds.size()) {
+        if (!answeredQuestionIds.containsAll(requiredQuestionIds) || !allowedQuestionIds.containsAll(answeredQuestionIds)) {
             throw new ValidationException("Todas as perguntas do sintoma devem ser respondidas");
         }
     }

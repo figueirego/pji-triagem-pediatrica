@@ -43,6 +43,27 @@ public class Question {
     @Column(name = "tipo", nullable = false)
     private QuestionType type;
 
+    @Column(name = "idade_derivada", nullable = false)
+    private Boolean ageDerived = false;
+
+    @Column(name = "idade_min_valor")
+    private Integer ageLowerValue;
+
+    @Column(name = "idade_min_unidade")
+    private String ageLowerUnit;
+
+    @Column(name = "idade_min_inclusiva")
+    private Boolean ageLowerInclusive;
+
+    @Column(name = "idade_max_valor")
+    private Integer ageUpperValue;
+
+    @Column(name = "idade_max_unidade")
+    private String ageUpperUnit;
+
+    @Column(name = "idade_max_inclusiva")
+    private Boolean ageUpperInclusive;
+
     @Column(name = "ordem", nullable = false)
     private Integer order = 0;
 }

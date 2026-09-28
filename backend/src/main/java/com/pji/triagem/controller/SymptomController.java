@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/symptoms")
+@RequestMapping({"/symptoms", "/sintomas"})
 @AllArgsConstructor
 @Tag(name = "Symptoms", description = "Endpoints do catálogo de sintomas")
 public class SymptomController {

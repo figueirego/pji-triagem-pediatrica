@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { Card, GhostButton, Icon, Mascot, PrimaryButton, TextField } from '../components';
-import { getDemoCredentials } from '../services/authService';
 import { colors, spacing, typography } from '../theme';
 import { useAuth } from '../hooks/useAuth';
 
@@ -15,9 +14,8 @@ function getSubmitErrorMessage(error: unknown) {
 
 export function LoginScreen({ onNavigate }: LoginScreenProps) {
   const { authError, isSubmitting, login } = useAuth();
-  const demoCredentials = getDemoCredentials();
-  const [document, setDocument] = useState(demoCredentials.login);
-  const [password, setPassword] = useState(demoCredentials.password);
+  const [document, setDocument] = useState('');
+  const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
   async function handleSubmit() {

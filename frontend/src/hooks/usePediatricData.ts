@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getPediatricDemoData } from '../services/pediatricService';
-import { riskContent } from '../mocks/appMock';
+import { riskContent } from '../utils/riskContent';
 import type { PediatricDemoData } from '../types/domain';
 
 const initialState: PediatricDemoData = {

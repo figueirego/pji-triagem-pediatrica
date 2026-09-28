@@ -1,6 +1,9 @@
+import { useState } from 'react';
+import { symptomEducation } from '../utils/education';
+import { filterSymptoms } from '../utils/frontendGaps';
 import { ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, Icon, ScreenHeader, SymptomCard } from '../components';
+import { Card, Icon, ScreenHeader, SymptomCard, TextField } from '../components';
 import { colors, radii, riskPalette, spacing, typography } from '../theme';
 import type { OrientationCardItem, RiskTone, Symptom } from '../types/domain';
 
@@ -26,6 +29,7 @@ function toneStyle(tone: RiskTone): OrientationToneStyle {
 }
 
 export function OrientationsScreen({ onBack, onSelectOrientation, orientationCards = [], symptoms = [] }: OrientationsScreenProps) {
+  const [query, setQuery] = useState('');
   return (
     <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.tabContentBottom }} contentInsetAdjustmentBehavior="automatic">
       <ScreenHeader title="Orientações" onBack={onBack} />
@@ -87,17 +91,12 @@ export function OrientationsScreen({ onBack, onSelectOrientation, orientationCar
           <Text selectable style={[typography.eyebrow, { color: colors.textMuted }]}>
             Por sintoma
           </Text>
-          {symptoms.map((symptom) => (
+          <TextField label="Buscar orientação por sintoma" value={query} onChangeText={setQuery} placeholder="Ex.: febre" />
+          {filterSymptoms(symptoms, query).map((symptom) => (
             <SymptomCard
               key={symptom.id}
               symptom={symptom}
-              onPress={() => onSelectOrientation({
-                icon: symptom.icon,
-                id: `symptom-${symptom.id}`,
-                subtitle: symptom.desc,
-                title: symptom.name,
-                tone: symptom.tone,
-              })}
+              onPress={() => onSelectOrientation(symptomEducation(symptom))}
             />
           ))}
         </View>

@@ -14,7 +14,7 @@ public interface AssessmentHistoryMapper {
     AssessmentHistoryChildResponse toChildResponse(Child child);
 
     @Mapping(target = "childId", source = "child.id")
-    @Mapping(target = "childName", source = "child.name")
+    @Mapping(target = "childName", source = "childName")
     @Mapping(target = "classification", source = "finalClassification")
     @Mapping(target = "symptoms", ignore = true)
     AssessmentHistoryItemResponse toItemResponse(Assessment assessment);

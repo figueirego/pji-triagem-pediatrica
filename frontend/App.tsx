@@ -9,10 +9,10 @@ import {
 } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, View } from 'react-native';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { AppViewport } from './src/components/AppViewport';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { colors } from './src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -36,19 +36,13 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <View
-        style={{
-          alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
-          backgroundColor: colors.background,
-          flex: 1,
-        }}
-      >
-        <View style={{ flex: 1, maxWidth: Platform.OS === 'web' ? 430 : undefined, width: '100%' }}>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <AppViewport>
           <RootNavigator />
-        </View>
-      </View>
-    </AuthProvider>
+        </AppViewport>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

@@ -16,6 +16,8 @@ public class ChildHomeResponse {
     private Long id;
     private String name;
     private String age;
+    private java.time.LocalDate birthDate;
+    private java.math.BigDecimal weightKg;
     private Integer ageInMonths;
     private String avatarEmoji;
     private Long totalAssessments;

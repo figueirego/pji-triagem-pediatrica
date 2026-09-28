@@ -19,7 +19,7 @@ export function filterSymptoms(symptoms: Symptom[], query: string): Symptom[] {
 }
 
 function emergencyInstruction(risk: RiskLevel): string {
-  if (risk === 'high') return 'Procure atendimento de urgência se os sinais persistirem ou piorarem.';
+  if (risk === 'high') return 'Procure atendimento de urgência imediatamente. Não aguarde melhora; em emergência, ligue SAMU 192.';
   if (risk === 'mod') return 'Procure avaliação médica nas próximas horas e monitore a evolução.';
   return 'Observe em casa e procure atendimento se surgirem sinais de alerta.';
 }
@@ -44,6 +44,8 @@ export function buildTriageShareMessage(result: TriageResult | null, riskLabel: 
 }
 
 export function buildOrientationDetailItems(item: OrientationCardItem): string[] {
+  if (item.details?.length) return item.details;
+  if (item.id.match(/^(main|warning|home|help)-/)) return [item.subtitle, 'Siga também a urgência indicada no resultado da avaliação.'];
   if (item.tone === 'high' || item.id.startsWith('help')) {
     return [
       'Acione o SAMU 192 ou vá ao serviço de emergência se houver piora rápida.',

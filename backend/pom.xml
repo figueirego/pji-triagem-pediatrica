@@ -195,6 +195,8 @@
                                     <element>CLASS</element>
                                     <includes>
                                         <include>com.pji.triagem.service.impl.AssessmentCalculationServiceImpl</include>
+                                        <include>com.pji.triagem.service.impl.PediatricTriageRules</include>
+                                        <include>com.pji.triagem.service.impl.AgeConditionResolver</include>
                                     </includes>
                                     <limits>
                                         <limit>

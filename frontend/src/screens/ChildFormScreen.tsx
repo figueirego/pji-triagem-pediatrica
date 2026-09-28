@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { Card, GhostButton, Icon, PrimaryButton, ScreenHeader, TextField } from '../components';
 import { colors, radii, riskPalette, shadows, spacing, typography } from '../theme';
-import { parseAgeAmount } from '../utils/age';
+import { parseAgeAmount, birthDateAge } from '../utils/age';
+import { formatBirthDateInput, maskBirthDateInput, parseBirthDateInput } from '../utils/birthDateInput';
 import type { AgeUnit, ChildProfile, RiskTone } from '../types/domain';
 
 type AvatarTint = Extract<RiskTone, 'primary' | 'low' | 'mod' | 'high'>;
@@ -37,6 +38,7 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
   const [name, setName] = useState(initialChild?.name || '');
   const [ageValue, setAgeValue] = useState(initialChild?.ageValue || '');
   const [ageUnit, setAgeUnit] = useState<AgeUnit>(initialChild?.ageUnit || 'anos');
+  const [birthDate, setBirthDate] = useState(formatBirthDateInput(initialChild?.birthDate));
   const [weight, setWeight] = useState(weightValue(initialChild?.weight));
   const [tint, setTint] = useState<AvatarTint>(avatarTint(initialChild?.tint));
   const [avatarEmoji, setAvatarEmoji] = useState(initialChild?.avatarEmoji || '🌸');
@@ -47,18 +49,24 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
   async function handleSave() {
     setError(null);
     const trimmedName = name.trim();
-    if (!trimmedName || !ageValue.trim()) {
+    if (!trimmedName || (!ageValue.trim() && !birthDate)) {
       setError('Informe nome e idade da criança.');
       return;
     }
     let parsedAgeValue: number;
+    let isoBirthDate: string | undefined;
     try {
-      parsedAgeValue = parseAgeAmount(ageValue, ageUnit);
+      isoBirthDate = birthDate ? parseBirthDateInput(birthDate) : undefined;
+      parsedAgeValue = isoBirthDate ? Number(birthDateAge(isoBirthDate).ageValue) : parseAgeAmount(ageValue, ageUnit);
     } catch (ageError) {
       setError(ageError instanceof Error ? ageError.message : 'Informe uma idade válida.');
       return;
     }
 
+    if (weight && (!/^\d+(?:[.,]\d+)?$/.test(weight) || Number(weight.replace(',', '.')) <= 0)) {
+      setError('Informe um peso válido maior que zero, ou deixe em branco.');
+      return;
+    }
     const initials = trimmedName
       .split(' ')
       .filter(Boolean)
@@ -70,10 +78,11 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
     const child: ChildProfile = {
       id: initialChild?.id || `${trimmedName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
       backendId: initialChild?.backendId,
+      birthDate: isoBirthDate,
       name: trimmedName,
       ageValue: String(parsedAgeValue),
-      ageUnit,
-      age: `${parsedAgeValue} ${ageUnit}`,
+      ageUnit: isoBirthDate ? birthDateAge(isoBirthDate).ageUnit : ageUnit,
+      age: isoBirthDate ? birthDateAge(isoBirthDate).age : `${parsedAgeValue} ${ageUnit}`,
       weight: weight ? `${weight} kg` : 'Peso não informado',
       initials,
       tint,
@@ -170,7 +179,7 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
           <TextField
             inputMode="numeric"
             label="Idade"
-            onChangeText={setAgeValue}
+            onChangeText={(value)=>{setAgeValue(value);setBirthDate('');}}
             placeholder="Ex.: 4"
             value={ageValue}
           />
@@ -193,7 +202,7 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
                 <Pressable
                   accessibilityRole="button"
                   key={unit}
-                  onPress={() => setAgeUnit(unit)}
+                  onPress={() => {setAgeUnit(unit);setBirthDate('');}}
                   style={{
                     backgroundColor: selected ? colors.primary : 'transparent',
                     borderRadius: radii.sm,
@@ -210,7 +219,17 @@ export function ChildFormScreen({ initialChild, onBack, onDelete, onSave }: Chil
           </View>
         </View>
         <TextField
-          hint="Ajuda em cálculos futuros de dose e hidratação."
+          label="Data de nascimento (DD/MM/AAAA)"
+          accessibilityLabel="Data de nascimento"
+          hint="Informe a data exata quando souber. Ela tem prioridade sobre a idade acima e evita arredondamentos."
+          value={birthDate}
+          onChangeText={(value) => setBirthDate(maskBirthDateInput(value))}
+          placeholder="DD/MM/AAAA"
+          keyboardType="number-pad"
+          maxLength={10}
+        />
+        <TextField
+          hint="Peso em quilogramas. Este aplicativo não calcula doses de medicamentos."
           inputMode="decimal"
           label="Peso (opcional)"
           onChangeText={setWeight}

@@ -53,8 +53,17 @@ public class Assessment {
     @Column(name = "respostas", columnDefinition = "jsonb")
     private String responses;
 
-    @Column(name = "protocolo_versao", nullable = false)
+    @Column(name = "protocolo_versao", nullable = false, length = 64)
     private String protocolVersion = "1.0.0";
+
+    @Column(name = "motivo")
+    private String reason;
+
+    @Column(name = "crianca_nome_snapshot")
+    private String childName;
+
+    @Column(name = "crianca_idade_snapshot")
+    private String childAgeAtAssessment;
 
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime createdAt;
